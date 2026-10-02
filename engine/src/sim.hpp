@@ -317,7 +317,7 @@ class Sim {
     MT19937 global_, oracle_rs_;
 
     // kernel
-    std::vector<HE> heap_;
+    std::vector<HE> heap_, wheap_;
     std::vector<Slot> slots_;
     std::vector<uint32_t> free_slots_;
     int64_t cur_ = 0;
@@ -359,23 +359,25 @@ class Sim {
         slots_.emplace_back();
         return uint32_t(slots_.size() - 1);
     }
-    // 4-ary min-heap (half the depth of a binary heap; children share a cache line pair)
-    inline void push(const HE& e) {
-        heap_.push_back(e);
-        size_t i = heap_.size() - 1;
+    // Two 4-ary min-heaps — wakeups and in-flight messages — merged by comparing tops. The pair
+    // yields exactly the single-queue order (a total order on (time, sender, recipient, id)), but
+    // most pops (messages) hit a small, shallow heap.
+    static inline void heap_push(std::vector<HE>& h, const HE& e) {
+        h.push_back(e);
+        size_t i = h.size() - 1;
         while (i > 0) {
             size_t p = (i - 1) >> 2;
-            if (!less(e, heap_[p])) break;
-            heap_[i] = heap_[p];
+            if (!less(e, h[p])) break;
+            h[i] = h[p];
             i = p;
         }
-        heap_[i] = e;
+        h[i] = e;
     }
-    inline HE pop() {
-        HE top = heap_[0];
-        HE last = heap_.back();
-        heap_.pop_back();
-        size_t n = heap_.size();
+    static inline HE heap_pop(std::vector<HE>& h) {
+        HE top = h[0];
+        HE last = h.back();
+        h.pop_back();
+        size_t n = h.size();
         if (n) {
             size_t i = 0;
             for (;;) {
@@ -384,14 +386,20 @@ class Sim {
                 size_t best = c;
                 size_t e = std::min(c + 4, n);
                 for (size_t k = c + 1; k < e; k++)
-                    if (less(heap_[k], heap_[best])) best = k;
-                if (!less(heap_[best], last)) break;
-                heap_[i] = heap_[best];
+                    if (less(h[k], h[best])) best = k;
+                if (!less(h[best], last)) break;
+                h[i] = h[best];
                 i = best;
             }
-            heap_[i] = last;
+            h[i] = last;
         }
         return top;
+    }
+    inline void push(const HE& e, bool wake) { heap_push(wake ? wheap_ : heap_, e); }
+    inline bool queue_empty() const { return heap_.empty() && wheap_.empty(); }
+    inline HE pop(bool& wake) {
+        wake = !wheap_.empty() && (heap_.empty() || less(wheap_[0], heap_[0]));
+        return heap_pop(wake ? wheap_ : heap_);
     }
     inline int64_t latency(int32_t s, int32_t r);
     inline void set_wakeup(int32_t aid, int64_t t);
@@ -525,6 +533,7 @@ inline void Sim::setup() {
     busy_.assign(n, start_);
     cdelay_.assign(n, DEFAULT_COMPUTATION_DELAY);
     heap_.reserve(4 * n + 64);
+    wheap_.reserve(n + 8);
     slots_.reserve(4 * n + 64);
     g_orders_.reserve(256);
     g_qseen_[0] = g_qseen_[1] = false;
@@ -541,7 +550,7 @@ inline void Sim::set_wakeup(int32_t aid, int64_t t) {
     uint32_t si = alloc_slot();
     Slot& sl = slots_[si];
     sl.kind = K_WAKEUP;
-    push(HE{t, (uint64_t(uint32_t(aid)) << 32) | uint32_t(aid), next_mid_++, si});
+    push(HE{t, (uint64_t(uint32_t(aid)) << 32) | uint32_t(aid), next_mid_++, si}, true);
 }
 
 inline Sim::Slot& Sim::send(int32_t s, int32_t r, uint8_t kind, int64_t mid, int64_t delay) {
@@ -555,7 +564,7 @@ inline Sim::Slot& Sim::send(int32_t s, int32_t r, uint8_t kind, int64_t mid, int
     sl.t_recv = at;
     sl.causal = causal_;
     sl.order_id = NULL_I64;
-    push(HE{at, (uint64_t(uint32_t(s)) << 32) | uint32_t(r), mid, si});
+    push(HE{at, (uint64_t(uint32_t(s)) << 32) | uint32_t(r), mid, si}, false);
     return sl;
 }
 
@@ -565,14 +574,15 @@ inline void Sim::run() {
     set_wakeup(0, mkt_close_);
     for (size_t a = 0; a < agents_.size(); a++) set_wakeup(int32_t(a), start_);
     cur_ = start_;
-    while (!heap_.empty() && cur_ <= stop_) {
+    while (!queue_empty() && cur_ <= stop_) {
         T3P_BEGIN
-        HE e = pop();
+        bool wake;
+        HE e = pop(wake);
         cur_ = e.t;
         int32_t r = int32_t(e.sr & 0xffffffffu);
         if (busy_[r] > cur_) {  // recipient still "thinking": requeue at its free time
             e.t = busy_[r];
-            push(e);
+            push(e, wake);
             continue;
         }
         busy_[r] = cur_;
