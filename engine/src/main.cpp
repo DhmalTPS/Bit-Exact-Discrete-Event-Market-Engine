@@ -114,10 +114,11 @@ class StreamSink : public Sink {
         lcols_[9].spec = spec("causal_parent", out::INT64, true);
         for (auto& c : tcols_) c.begin();
         for (auto& c : lcols_) c.begin();
-        for (int i = 0; i < kPool; i++) { tfree_.push_back(new TraceChunk); lfree_.push_back(new LedgerChunk); }
+        for (int i = 0; i < 2; i++) { tfree_.push_back(new TraceChunk); lfree_.push_back(new LedgerChunk); }
+        tn_ = ln_ = 2;
         types.reserve(1 << 16);
-        tc = take(tfree_);
-        lc = take(lfree_);
+        tc = take(tfree_, tn_);
+        lc = take(lfree_, ln_);
         lc->seq0 = 0;
     }
     ~StreamSink() override {
@@ -141,7 +142,7 @@ class StreamSink : public Sink {
             c->n = 0;
             give(tfree_, c);
         });
-        tc = take(tfree_);
+        tc = take(tfree_, tn_);
     }
     void flush_ledger() override {
         LedgerChunk* c = lc;
@@ -162,7 +163,7 @@ class StreamSink : public Sink {
             c->n = 0;
             give(lfree_, c);
         });
-        lc = take(lfree_);
+        lc = take(lfree_, ln_);
         lc->seq0 = next_seq;
     }
     // Drain everything and build both file images.
@@ -178,7 +179,8 @@ class StreamSink : public Sink {
     }
 
    private:
-    static constexpr int kPool = 4;
+    static constexpr int kMaxPool = 64;  // chunks are allocated lazily, only when encoding lags
+    int tn_ = 0, ln_ = 0;
     out::Worker tw_, lw_;
     std::vector<out::ColumnChunk> tcols_, lcols_;
     std::mutex pm_;
@@ -186,8 +188,9 @@ class StreamSink : public Sink {
     std::vector<TraceChunk*> tfree_;
     std::vector<LedgerChunk*> lfree_;
     int64_t seqbuf_[CHUNK];
-    template <class T> T* take(std::vector<T*>& pool) {
+    template <class T> T* take(std::vector<T*>& pool, int& allocated) {
         std::unique_lock<std::mutex> lk(pm_);
+        if (pool.empty() && allocated < kMaxPool) { allocated++; return new T; }
         pcv_.wait(lk, [&] { return !pool.empty(); });
         T* p = pool.back();
         pool.pop_back();

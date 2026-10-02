@@ -227,7 +227,7 @@ inline Scenario load_scenario(const JVal& j, const int64_t* seed_override = null
 }
 
 // ---- streaming output sink (fixed-size columnar chunks) ----------------------------------------
-constexpr size_t CHUNK = 32768;
+constexpr size_t CHUNK = 4096;
 struct TraceChunk {
     size_t n = 0;
     int64_t t[CHUNK], price[CHUNK], size[CHUNK], order_id[CHUNK];
