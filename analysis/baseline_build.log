@@ -1,0 +1,373 @@
+#0 building with "desktop-linux" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 5.20kB 0.0s done
+#1 WARN: FromPlatformFlagConstDisallowed: FROM --platform flag should not use constant value "linux/amd64" (line 24)
+#1 DONE 0.1s
+
+#2 [internal] load metadata for docker.io/library/python:3.11-slim
+#2 ...
+
+#3 [auth] library/python:pull token for registry-1.docker.io
+#3 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python:3.11-slim
+#2 DONE 3.5s
+
+#4 [internal] load .dockerignore
+#4 transferring context: 257B done
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 DONE 0.0s
+
+#6 [1/9] FROM docker.io/library/python:3.11-slim@sha256:bab1b7ef4b450c81002278d035eff85ebe394ae94df904f7a3ba14f7e16e487b
+#6 resolve docker.io/library/python:3.11-slim@sha256:bab1b7ef4b450c81002278d035eff85ebe394ae94df904f7a3ba14f7e16e487b 0.0s done
+#6 DONE 0.2s
+
+#5 [internal] load build context
+#5 transferring context: 63.01kB 0.0s done
+#5 DONE 0.1s
+
+#6 [1/9] FROM docker.io/library/python:3.11-slim@sha256:bab1b7ef4b450c81002278d035eff85ebe394ae94df904f7a3ba14f7e16e487b
+#6 sha256:48355dfcbf9e05ad2daf9d9506583bdb41b02ff7d67a5f2b239217e09320604c 0B / 250B 0.2s
+#6 sha256:295f1967d0454b54c78432d56f412a274da4b46e92cdf5679aea04fbd47b9c36 0B / 14.46MB 0.2s
+#6 sha256:f64163c1b799b4915c58c0439006ebe6e393a8c346d2393f08fa0ca74e306f6e 0B / 4.27MB 0.2s
+#6 sha256:48355dfcbf9e05ad2daf9d9506583bdb41b02ff7d67a5f2b239217e09320604c 250B / 250B 0.4s done
+#6 sha256:295f1967d0454b54c78432d56f412a274da4b46e92cdf5679aea04fbd47b9c36 1.05MB / 14.46MB 1.4s
+#6 sha256:295f1967d0454b54c78432d56f412a274da4b46e92cdf5679aea04fbd47b9c36 2.10MB / 14.46MB 1.8s
+#6 sha256:f64163c1b799b4915c58c0439006ebe6e393a8c346d2393f08fa0ca74e306f6e 1.05MB / 4.27MB 1.8s
+#6 sha256:295f1967d0454b54c78432d56f412a274da4b46e92cdf5679aea04fbd47b9c36 3.15MB / 14.46MB 2.1s
+#6 sha256:f64163c1b799b4915c58c0439006ebe6e393a8c346d2393f08fa0ca74e306f6e 2.10MB / 4.27MB 2.0s
+#6 sha256:f64163c1b799b4915c58c0439006ebe6e393a8c346d2393f08fa0ca74e306f6e 3.15MB / 4.27MB 2.3s
+#6 sha256:295f1967d0454b54c78432d56f412a274da4b46e92cdf5679aea04fbd47b9c36 4.19MB / 14.46MB 2.7s
+#6 sha256:f64163c1b799b4915c58c0439006ebe6e393a8c346d2393f08fa0ca74e306f6e 4.27MB / 4.27MB 2.6s done
+#6 extracting sha256:f64163c1b799b4915c58c0439006ebe6e393a8c346d2393f08fa0ca74e306f6e
+#6 sha256:295f1967d0454b54c78432d56f412a274da4b46e92cdf5679aea04fbd47b9c36 5.24MB / 14.46MB 3.0s
+#6 extracting sha256:f64163c1b799b4915c58c0439006ebe6e393a8c346d2393f08fa0ca74e306f6e 0.4s done
+#6 sha256:295f1967d0454b54c78432d56f412a274da4b46e92cdf5679aea04fbd47b9c36 6.29MB / 14.46MB 3.5s
+#6 sha256:295f1967d0454b54c78432d56f412a274da4b46e92cdf5679aea04fbd47b9c36 7.34MB / 14.46MB 3.8s
+#6 sha256:295f1967d0454b54c78432d56f412a274da4b46e92cdf5679aea04fbd47b9c36 8.39MB / 14.46MB 4.1s
+#6 sha256:295f1967d0454b54c78432d56f412a274da4b46e92cdf5679aea04fbd47b9c36 9.44MB / 14.46MB 4.5s
+#6 sha256:295f1967d0454b54c78432d56f412a274da4b46e92cdf5679aea04fbd47b9c36 10.49MB / 14.46MB 4.6s
+#6 sha256:295f1967d0454b54c78432d56f412a274da4b46e92cdf5679aea04fbd47b9c36 11.53MB / 14.46MB 4.9s
+#6 sha256:295f1967d0454b54c78432d56f412a274da4b46e92cdf5679aea04fbd47b9c36 12.58MB / 14.46MB 5.2s
+#6 sha256:295f1967d0454b54c78432d56f412a274da4b46e92cdf5679aea04fbd47b9c36 13.63MB / 14.46MB 5.4s
+#6 sha256:295f1967d0454b54c78432d56f412a274da4b46e92cdf5679aea04fbd47b9c36 14.46MB / 14.46MB 5.6s done
+#6 extracting sha256:295f1967d0454b54c78432d56f412a274da4b46e92cdf5679aea04fbd47b9c36
+#6 extracting sha256:295f1967d0454b54c78432d56f412a274da4b46e92cdf5679aea04fbd47b9c36 1.6s done
+#6 DONE 7.4s
+
+#6 [1/9] FROM docker.io/library/python:3.11-slim@sha256:bab1b7ef4b450c81002278d035eff85ebe394ae94df904f7a3ba14f7e16e487b
+#6 extracting sha256:48355dfcbf9e05ad2daf9d9506583bdb41b02ff7d67a5f2b239217e09320604c 0.0s done
+#6 DONE 7.4s
+
+#7 [2/9] RUN pip install         numpy==1.26.4         pandas==1.5.3         scipy==1.17.1         pyarrow==15.0.2         coloredlogs==15.0.1
+#7 4.431 Collecting numpy==1.26.4
+#7 4.770   Downloading numpy-1.26.4-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (61 kB)
+#7 4.865      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 61.0/61.0 kB 726.0 kB/s eta 0:00:00
+#7 5.275 Collecting pandas==1.5.3
+#7 5.601   Downloading pandas-1.5.3-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (11 kB)
+#7 6.302 Collecting scipy==1.17.1
+#7 6.389   Downloading scipy-1.17.1-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl.metadata (62 kB)
+#7 6.437      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 62.1/62.1 kB 1.2 MB/s eta 0:00:00
+#7 6.981 Collecting pyarrow==15.0.2
+#7 7.318   Downloading pyarrow-15.0.2-cp311-cp311-manylinux_2_28_x86_64.whl.metadata (3.0 kB)
+#7 7.428 Collecting coloredlogs==15.0.1
+#7 7.522   Downloading coloredlogs-15.0.1-py2.py3-none-any.whl.metadata (12 kB)
+#7 7.644 Collecting python-dateutil>=2.8.1 (from pandas==1.5.3)
+#7 7.731   Downloading python_dateutil-2.9.0.post0-py2.py3-none-any.whl.metadata (8.4 kB)
+#7 7.869 Collecting pytz>=2020.1 (from pandas==1.5.3)
+#7 7.940   Downloading pytz-2026.4-py2.py3-none-any.whl.metadata (22 kB)
+#7 8.179 Collecting humanfriendly>=9.1 (from coloredlogs==15.0.1)
+#7 8.243   Downloading humanfriendly-10.0-py2.py3-none-any.whl.metadata (9.2 kB)
+#7 8.380 Collecting six>=1.5 (from python-dateutil>=2.8.1->pandas==1.5.3)
+#7 8.438   Downloading six-1.17.0-py2.py3-none-any.whl.metadata (1.7 kB)
+#7 8.518 Downloading numpy-1.26.4-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (18.3 MB)
+#7 16.82    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 18.3/18.3 MB 3.5 MB/s eta 0:00:00
+#7 17.18 Downloading pandas-1.5.3-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (12.0 MB)
+#7 21.06    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 12.0/12.0 MB 3.1 MB/s eta 0:00:00
+#7 21.12 Downloading scipy-1.17.1-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (35.3 MB)
+#7 27.45    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 35.3/35.3 MB 5.1 MB/s eta 0:00:00
+#7 27.78 Downloading pyarrow-15.0.2-cp311-cp311-manylinux_2_28_x86_64.whl (38.3 MB)
+#7 38.55    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 38.3/38.3 MB 3.7 MB/s eta 0:00:00
+#7 38.60 Downloading coloredlogs-15.0.1-py2.py3-none-any.whl (46 kB)
+#7 38.62    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 46.0/46.0 kB 20.7 MB/s eta 0:00:00
+#7 38.68 Downloading humanfriendly-10.0-py2.py3-none-any.whl (86 kB)
+#7 38.69    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 86.8/86.8 kB 7.2 MB/s eta 0:00:00
+#7 38.79 Downloading python_dateutil-2.9.0.post0-py2.py3-none-any.whl (229 kB)
+#7 38.83    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 229.9/229.9 kB 6.3 MB/s eta 0:00:00
+#7 38.89 Downloading pytz-2026.4-py2.py3-none-any.whl (506 kB)
+#7 38.97    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 506.7/506.7 kB 7.0 MB/s eta 0:00:00
+#7 39.03 Downloading six-1.17.0-py2.py3-none-any.whl (11 kB)
+#7 39.38 Installing collected packages: pytz, six, numpy, humanfriendly, scipy, python-dateutil, pyarrow, coloredlogs, pandas
+#7 59.96 Successfully installed coloredlogs-15.0.1 humanfriendly-10.0 numpy-1.26.4 pandas-1.5.3 pyarrow-15.0.2 python-dateutil-2.9.0.post0 pytz-2026.4 scipy-1.17.1 six-1.17.0
+#7 59.96 WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv
+#7 60.39 
+#7 60.39 [notice] A new release of pip is available: 24.0 -> 26.2.1
+#7 60.39 [notice] To update, run: pip install --upgrade pip
+#7 DONE 61.0s
+
+#8 [3/9] COPY patches/ /tmp/patches/
+#8 DONE 0.2s
+
+#9 [4/9] RUN apt-get update     && apt-get install -y --no-install-recommends git     && git clone "https://github.com/jpmorganchase/abides-jpmc-public.git" /tmp/abides     && git -C /tmp/abides checkout "f9cbe51342b7dedd9587e4e069040d68a5c6477f"     && git -C /tmp/abides apply /tmp/patches/order_size_model.pomegranate-free.patch     && git -C /tmp/abides apply /tmp/patches/kernel_message_ledger.patch     && git -C /tmp/abides apply /tmp/patches/exchange_protocol_stp.patch     && git -C /tmp/abides apply /tmp/patches/oracle_scheduled_jump.patch     && pip install --no-deps /tmp/abides/abides-core /tmp/abides/abides-markets     && apt-get purge -y git     && apt-get autoremove -y     && rm -rf /tmp/abides /tmp/patches /var/lib/apt/lists/*
+#9 1.130 Hit:1 http://deb.debian.org/debian trixie InRelease
+#9 1.295 Get:2 http://deb.debian.org/debian trixie-updates InRelease [47.3 kB]
+#9 1.749 Get:3 http://deb.debian.org/debian-security trixie-security InRelease [43.4 kB]
+#9 1.839 Get:4 http://deb.debian.org/debian trixie/main amd64 Packages [9678 kB]
+#9 4.783 Get:5 http://deb.debian.org/debian trixie-updates/main amd64 Packages [4412 B]
+#9 4.814 Get:6 http://deb.debian.org/debian-security trixie-security/main amd64 Packages [263 kB]
+#9 5.806 Fetched 10.0 MB in 5s (1909 kB/s)
+#9 5.806 Reading package lists...
+#9 6.808 Reading package lists...
+#9 7.748 Building dependency tree...
+#9 7.974 Reading state information...
+#9 8.311 The following additional packages will be installed:
+#9 8.311   git-man libbrotli1 libcom-err2 libcurl3t64-gnutls liberror-perl libexpat1
+#9 8.312   libgdbm-compat4t64 libgnutls30t64 libgssapi-krb5-2 libidn2-0 libk5crypto3
+#9 8.312   libkeyutils1 libkrb5-3 libkrb5support0 libldap2 libnghttp2-14 libnghttp3-9
+#9 8.312   libngtcp2-16 libngtcp2-crypto-gnutls8 libp11-kit0 libperl5.40 libpsl5t64
+#9 8.314   librtmp1 libsasl2-2 libsasl2-modules-db libssh2-1t64 libtasn1-6
+#9 8.316   libunistring5 perl perl-modules-5.40
+#9 8.320 Suggested packages:
+#9 8.320   gettext-base git-doc git-email git-gui gitk gitweb git-cvs git-mediawiki
+#9 8.320   git-svn gnutls-bin krb5-doc krb5-user sensible-utils perl-doc
+#9 8.320   libterm-readline-gnu-perl | libterm-readline-perl-perl make
+#9 8.320   libtap-harness-archive-perl
+#9 8.320 Recommended packages:
+#9 8.320   patch less ssh-client krb5-locales libldap-common publicsuffix
+#9 8.320   libsasl2-modules
+#9 8.592 The following NEW packages will be installed:
+#9 8.592   git git-man libbrotli1 libcom-err2 libcurl3t64-gnutls liberror-perl
+#9 8.592   libexpat1 libgdbm-compat4t64 libgnutls30t64 libgssapi-krb5-2 libidn2-0
+#9 8.592   libk5crypto3 libkeyutils1 libkrb5-3 libkrb5support0 libldap2 libnghttp2-14
+#9 8.592   libnghttp3-9 libngtcp2-16 libngtcp2-crypto-gnutls8 libp11-kit0 libperl5.40
+#9 8.593   libpsl5t64 librtmp1 libsasl2-2 libsasl2-modules-db libssh2-1t64 libtasn1-6
+#9 8.593   libunistring5 perl perl-modules-5.40
+#9 8.730 0 upgraded, 31 newly installed, 0 to remove and 1 not upgraded.
+#9 8.730 Need to get 23.6 MB of archives.
+#9 8.730 After this operation, 119 MB of additional disk space will be used.
+#9 8.730 Get:1 http://deb.debian.org/debian trixie/main amd64 libexpat1 amd64 2.8.3-1~deb13u1 [123 kB]
+#9 9.049 Get:2 http://deb.debian.org/debian trixie/main amd64 perl-modules-5.40 all 5.40.1-6+deb13u1 [3014 kB]
+#9 9.861 Get:3 http://deb.debian.org/debian trixie/main amd64 libgdbm-compat4t64 amd64 1.24-2 [50.3 kB]
+#9 9.863 Get:4 http://deb.debian.org/debian trixie/main amd64 libperl5.40 amd64 5.40.1-6+deb13u1 [4326 kB]
+#9 11.02 Get:5 http://deb.debian.org/debian trixie/main amd64 perl amd64 5.40.1-6+deb13u1 [268 kB]
+#9 11.07 Get:6 http://deb.debian.org/debian trixie/main amd64 libbrotli1 amd64 1.1.0-2+b7 [307 kB]
+#9 11.11 Get:7 http://deb.debian.org/debian trixie/main amd64 libunistring5 amd64 1.3-2 [477 kB]
+#9 11.22 Get:8 http://deb.debian.org/debian trixie/main amd64 libidn2-0 amd64 2.3.8-2 [109 kB]
+#9 11.24 Get:9 http://deb.debian.org/debian trixie/main amd64 libp11-kit0 amd64 0.25.5-3 [425 kB]
+#9 11.33 Get:10 http://deb.debian.org/debian trixie/main amd64 libtasn1-6 amd64 4.20.0-2+deb13u1 [50.1 kB]
+#9 11.35 Get:11 http://deb.debian.org/debian trixie/main amd64 libgnutls30t64 amd64 3.8.9-3+deb13u4 [1469 kB]
+#9 11.64 Get:12 http://deb.debian.org/debian trixie/main amd64 libkrb5support0 amd64 1.21.3-5+deb13u1 [33.1 kB]
+#9 11.64 Get:13 http://deb.debian.org/debian trixie/main amd64 libcom-err2 amd64 1.47.2-3+b12 [25.0 kB]
+#9 11.64 Get:14 http://deb.debian.org/debian trixie/main amd64 libk5crypto3 amd64 1.21.3-5+deb13u1 [81.2 kB]
+#9 11.65 Get:15 http://deb.debian.org/debian trixie/main amd64 libkeyutils1 amd64 1.6.3-6 [9456 B]
+#9 11.65 Get:16 http://deb.debian.org/debian trixie/main amd64 libkrb5-3 amd64 1.21.3-5+deb13u1 [326 kB]
+#9 11.70 Get:17 http://deb.debian.org/debian trixie/main amd64 libgssapi-krb5-2 amd64 1.21.3-5+deb13u1 [138 kB]
+#9 11.72 Get:18 http://deb.debian.org/debian trixie/main amd64 libsasl2-modules-db amd64 2.1.28+dfsg1-9 [19.8 kB]
+#9 11.72 Get:19 http://deb.debian.org/debian trixie/main amd64 libsasl2-2 amd64 2.1.28+dfsg1-9 [57.5 kB]
+#9 11.73 Get:20 http://deb.debian.org/debian trixie/main amd64 libldap2 amd64 2.6.10+dfsg-1 [194 kB]
+#9 11.75 Get:21 http://deb.debian.org/debian trixie/main amd64 libnghttp2-14 amd64 1.64.0-1.1+deb13u1 [76.2 kB]
+#9 11.76 Get:22 http://deb.debian.org/debian trixie/main amd64 libnghttp3-9 amd64 1.8.0-1 [67.7 kB]
+#9 11.78 Get:23 http://deb.debian.org/debian trixie/main amd64 libngtcp2-16 amd64 1.11.0-1+deb13u1 [132 kB]
+#9 11.80 Get:24 http://deb.debian.org/debian trixie/main amd64 libngtcp2-crypto-gnutls8 amd64 1.11.0-1+deb13u1 [29.5 kB]
+#9 11.80 Get:25 http://deb.debian.org/debian trixie/main amd64 libpsl5t64 amd64 0.21.2-1.1+b1 [57.2 kB]
+#9 11.81 Get:26 http://deb.debian.org/debian trixie/main amd64 librtmp1 amd64 2.4+20151223.gitfa8646d.1-2+b5 [58.8 kB]
+#9 11.81 Get:27 http://deb.debian.org/debian trixie/main amd64 libssh2-1t64 amd64 1.11.1-1+deb13u2 [245 kB]
+#9 11.85 Get:28 http://deb.debian.org/debian trixie/main amd64 libcurl3t64-gnutls amd64 8.14.1-2+deb13u5 [384 kB]
+#9 11.91 Get:29 http://deb.debian.org/debian trixie/main amd64 liberror-perl all 0.17030-1 [26.9 kB]
+#9 11.91 Get:30 http://deb.debian.org/debian trixie/main amd64 git-man all 1:2.47.3-0+deb13u1 [2205 kB]
+#9 12.45 Get:31 http://deb.debian.org/debian trixie/main amd64 git amd64 1:2.47.3-0+deb13u1 [8862 kB]
+#9 14.29 debconf: unable to initialize frontend: Dialog
+#9 14.29 debconf: (TERM is not set, so the dialog frontend is not usable.)
+#9 14.29 debconf: falling back to frontend: Readline
+#9 14.30 debconf: unable to initialize frontend: Readline
+#9 14.30 debconf: (Can't locate Term/ReadLine.pm in @INC (you may need to install the Term::ReadLine module) (@INC entries checked: /etc/perl /usr/local/lib/x86_64-linux-gnu/perl/5.40.1 /usr/local/share/perl/5.40.1 /usr/lib/x86_64-linux-gnu/perl5/5.40 /usr/share/perl5 /usr/lib/x86_64-linux-gnu/perl-base /usr/lib/x86_64-linux-gnu/perl/5.40 /usr/share/perl/5.40 /usr/local/lib/site_perl) at /usr/share/perl5/Debconf/FrontEnd/Readline.pm line 8, <STDIN> line 31.)
+#9 14.30 debconf: falling back to frontend: Teletype
+#9 14.31 debconf: unable to initialize frontend: Teletype
+#9 14.31 debconf: (This frontend requires a controlling tty.)
+#9 14.31 debconf: falling back to frontend: Noninteractive
+#9 16.50 Fetched 23.6 MB in 5s (4469 kB/s)
+#9 16.56 Selecting previously unselected package libexpat1:amd64.
+#9 16.56 (Reading database ... (Reading database ... 5%(Reading database ... 10%(Reading database ... 15%(Reading database ... 20%(Reading database ... 25%(Reading database ... 30%(Reading database ... 35%(Reading database ... 40%(Reading database ... 45%(Reading database ... 50%(Reading database ... 55%(Reading database ... 60%(Reading database ... 65%(Reading database ... 70%(Reading database ... 75%(Reading database ... 80%(Reading database ... 85%(Reading database ... 90%(Reading database ... 95%(Reading database ... 100%(Reading database ... 5660 files and directories currently installed.)
+#9 16.62 Preparing to unpack .../00-libexpat1_2.8.3-1~deb13u1_amd64.deb ...
+#9 16.63 Unpacking libexpat1:amd64 (2.8.3-1~deb13u1) ...
+#9 16.70 Selecting previously unselected package perl-modules-5.40.
+#9 16.70 Preparing to unpack .../01-perl-modules-5.40_5.40.1-6+deb13u1_all.deb ...
+#9 16.71 Unpacking perl-modules-5.40 (5.40.1-6+deb13u1) ...
+#9 17.76 Selecting previously unselected package libgdbm-compat4t64:amd64.
+#9 17.76 Preparing to unpack .../02-libgdbm-compat4t64_1.24-2_amd64.deb ...
+#9 17.77 Unpacking libgdbm-compat4t64:amd64 (1.24-2) ...
+#9 17.83 Selecting previously unselected package libperl5.40:amd64.
+#9 17.83 Preparing to unpack .../03-libperl5.40_5.40.1-6+deb13u1_amd64.deb ...
+#9 17.84 Unpacking libperl5.40:amd64 (5.40.1-6+deb13u1) ...
+#9 18.56 Selecting previously unselected package perl.
+#9 18.56 Preparing to unpack .../04-perl_5.40.1-6+deb13u1_amd64.deb ...
+#9 18.57 Unpacking perl (5.40.1-6+deb13u1) ...
+#9 18.67 Selecting previously unselected package libbrotli1:amd64.
+#9 18.67 Preparing to unpack .../05-libbrotli1_1.1.0-2+b7_amd64.deb ...
+#9 18.68 Unpacking libbrotli1:amd64 (1.1.0-2+b7) ...
+#9 18.77 Selecting previously unselected package libunistring5:amd64.
+#9 18.77 Preparing to unpack .../06-libunistring5_1.3-2_amd64.deb ...
+#9 18.77 Unpacking libunistring5:amd64 (1.3-2) ...
+#9 18.88 Selecting previously unselected package libidn2-0:amd64.
+#9 18.88 Preparing to unpack .../07-libidn2-0_2.3.8-2_amd64.deb ...
+#9 18.89 Unpacking libidn2-0:amd64 (2.3.8-2) ...
+#9 18.96 Selecting previously unselected package libp11-kit0:amd64.
+#9 18.97 Preparing to unpack .../08-libp11-kit0_0.25.5-3_amd64.deb ...
+#9 18.97 Unpacking libp11-kit0:amd64 (0.25.5-3) ...
+#9 19.05 Selecting previously unselected package libtasn1-6:amd64.
+#9 19.05 Preparing to unpack .../09-libtasn1-6_4.20.0-2+deb13u1_amd64.deb ...
+#9 19.06 Unpacking libtasn1-6:amd64 (4.20.0-2+deb13u1) ...
+#9 19.12 Selecting previously unselected package libgnutls30t64:amd64.
+#9 19.12 Preparing to unpack .../10-libgnutls30t64_3.8.9-3+deb13u4_amd64.deb ...
+#9 19.13 Unpacking libgnutls30t64:amd64 (3.8.9-3+deb13u4) ...
+#9 19.27 Selecting previously unselected package libkrb5support0:amd64.
+#9 19.27 Preparing to unpack .../11-libkrb5support0_1.21.3-5+deb13u1_amd64.deb ...
+#9 19.27 Unpacking libkrb5support0:amd64 (1.21.3-5+deb13u1) ...
+#9 19.33 Selecting previously unselected package libcom-err2:amd64.
+#9 19.33 Preparing to unpack .../12-libcom-err2_1.47.2-3+b12_amd64.deb ...
+#9 19.34 Unpacking libcom-err2:amd64 (1.47.2-3+b12) ...
+#9 19.40 Selecting previously unselected package libk5crypto3:amd64.
+#9 19.40 Preparing to unpack .../13-libk5crypto3_1.21.3-5+deb13u1_amd64.deb ...
+#9 19.41 Unpacking libk5crypto3:amd64 (1.21.3-5+deb13u1) ...
+#9 19.47 Selecting previously unselected package libkeyutils1:amd64.
+#9 19.47 Preparing to unpack .../14-libkeyutils1_1.6.3-6_amd64.deb ...
+#9 19.48 Unpacking libkeyutils1:amd64 (1.6.3-6) ...
+#9 19.54 Selecting previously unselected package libkrb5-3:amd64.
+#9 19.54 Preparing to unpack .../15-libkrb5-3_1.21.3-5+deb13u1_amd64.deb ...
+#9 19.54 Unpacking libkrb5-3:amd64 (1.21.3-5+deb13u1) ...
+#9 19.63 Selecting previously unselected package libgssapi-krb5-2:amd64.
+#9 19.63 Preparing to unpack .../16-libgssapi-krb5-2_1.21.3-5+deb13u1_amd64.deb ...
+#9 19.64 Unpacking libgssapi-krb5-2:amd64 (1.21.3-5+deb13u1) ...
+#9 19.69 Selecting previously unselected package libsasl2-modules-db:amd64.
+#9 19.70 Preparing to unpack .../17-libsasl2-modules-db_2.1.28+dfsg1-9_amd64.deb ...
+#9 19.70 Unpacking libsasl2-modules-db:amd64 (2.1.28+dfsg1-9) ...
+#9 19.77 Selecting previously unselected package libsasl2-2:amd64.
+#9 19.77 Preparing to unpack .../18-libsasl2-2_2.1.28+dfsg1-9_amd64.deb ...
+#9 19.78 Unpacking libsasl2-2:amd64 (2.1.28+dfsg1-9) ...
+#9 19.84 Selecting previously unselected package libldap2:amd64.
+#9 19.84 Preparing to unpack .../19-libldap2_2.6.10+dfsg-1_amd64.deb ...
+#9 19.85 Unpacking libldap2:amd64 (2.6.10+dfsg-1) ...
+#9 19.92 Selecting previously unselected package libnghttp2-14:amd64.
+#9 19.92 Preparing to unpack .../20-libnghttp2-14_1.64.0-1.1+deb13u1_amd64.deb ...
+#9 19.93 Unpacking libnghttp2-14:amd64 (1.64.0-1.1+deb13u1) ...
+#9 19.99 Selecting previously unselected package libnghttp3-9:amd64.
+#9 19.99 Preparing to unpack .../21-libnghttp3-9_1.8.0-1_amd64.deb ...
+#9 20.00 Unpacking libnghttp3-9:amd64 (1.8.0-1) ...
+#9 20.06 Selecting previously unselected package libngtcp2-16:amd64.
+#9 20.06 Preparing to unpack .../22-libngtcp2-16_1.11.0-1+deb13u1_amd64.deb ...
+#9 20.07 Unpacking libngtcp2-16:amd64 (1.11.0-1+deb13u1) ...
+#9 20.15 Selecting previously unselected package libngtcp2-crypto-gnutls8:amd64.
+#9 20.15 Preparing to unpack .../23-libngtcp2-crypto-gnutls8_1.11.0-1+deb13u1_amd64.deb ...
+#9 20.16 Unpacking libngtcp2-crypto-gnutls8:amd64 (1.11.0-1+deb13u1) ...
+#9 20.22 Selecting previously unselected package libpsl5t64:amd64.
+#9 20.22 Preparing to unpack .../24-libpsl5t64_0.21.2-1.1+b1_amd64.deb ...
+#9 20.22 Unpacking libpsl5t64:amd64 (0.21.2-1.1+b1) ...
+#9 20.28 Selecting previously unselected package librtmp1:amd64.
+#9 20.28 Preparing to unpack .../25-librtmp1_2.4+20151223.gitfa8646d.1-2+b5_amd64.deb ...
+#9 20.29 Unpacking librtmp1:amd64 (2.4+20151223.gitfa8646d.1-2+b5) ...
+#9 20.35 Selecting previously unselected package libssh2-1t64:amd64.
+#9 20.36 Preparing to unpack .../26-libssh2-1t64_1.11.1-1+deb13u2_amd64.deb ...
+#9 20.36 Unpacking libssh2-1t64:amd64 (1.11.1-1+deb13u2) ...
+#9 20.43 Selecting previously unselected package libcurl3t64-gnutls:amd64.
+#9 20.43 Preparing to unpack .../27-libcurl3t64-gnutls_8.14.1-2+deb13u5_amd64.deb ...
+#9 20.43 Unpacking libcurl3t64-gnutls:amd64 (8.14.1-2+deb13u5) ...
+#9 20.51 Selecting previously unselected package liberror-perl.
+#9 20.51 Preparing to unpack .../28-liberror-perl_0.17030-1_all.deb ...
+#9 20.52 Unpacking liberror-perl (0.17030-1) ...
+#9 20.59 Selecting previously unselected package git-man.
+#9 20.59 Preparing to unpack .../29-git-man_1%3a2.47.3-0+deb13u1_all.deb ...
+#9 20.59 Unpacking git-man (1:2.47.3-0+deb13u1) ...
+#9 20.71 Selecting previously unselected package git.
+#9 20.72 Preparing to unpack .../30-git_1%3a2.47.3-0+deb13u1_amd64.deb ...
+#9 20.74 Unpacking git (1:2.47.3-0+deb13u1) ...
+#9 21.42 Setting up libexpat1:amd64 (2.8.3-1~deb13u1) ...
+#9 21.44 Setting up libkeyutils1:amd64 (1.6.3-6) ...
+#9 21.45 Setting up libgdbm-compat4t64:amd64 (1.24-2) ...
+#9 21.47 Setting up libbrotli1:amd64 (1.1.0-2+b7) ...
+#9 21.49 Setting up libnghttp2-14:amd64 (1.64.0-1.1+deb13u1) ...
+#9 21.50 Setting up libcom-err2:amd64 (1.47.2-3+b12) ...
+#9 21.52 Setting up libkrb5support0:amd64 (1.21.3-5+deb13u1) ...
+#9 21.53 Setting up libsasl2-modules-db:amd64 (2.1.28+dfsg1-9) ...
+#9 21.54 Setting up libp11-kit0:amd64 (0.25.5-3) ...
+#9 21.55 Setting up libunistring5:amd64 (1.3-2) ...
+#9 21.57 Setting up libk5crypto3:amd64 (1.21.3-5+deb13u1) ...
+#9 21.58 Setting up libsasl2-2:amd64 (2.1.28+dfsg1-9) ...
+#9 21.59 Setting up libnghttp3-9:amd64 (1.8.0-1) ...
+#9 21.61 Setting up perl-modules-5.40 (5.40.1-6+deb13u1) ...
+#9 21.63 Setting up libtasn1-6:amd64 (4.20.0-2+deb13u1) ...
+#9 21.64 Setting up git-man (1:2.47.3-0+deb13u1) ...
+#9 21.66 Setting up libngtcp2-16:amd64 (1.11.0-1+deb13u1) ...
+#9 21.67 Setting up libkrb5-3:amd64 (1.21.3-5+deb13u1) ...
+#9 21.69 Setting up libssh2-1t64:amd64 (1.11.1-1+deb13u2) ...
+#9 21.71 Setting up libldap2:amd64 (2.6.10+dfsg-1) ...
+#9 21.72 Setting up libidn2-0:amd64 (2.3.8-2) ...
+#9 21.74 Setting up libperl5.40:amd64 (5.40.1-6+deb13u1) ...
+#9 21.75 Setting up perl (5.40.1-6+deb13u1) ...
+#9 21.78 Setting up libgssapi-krb5-2:amd64 (1.21.3-5+deb13u1) ...
+#9 21.79 Setting up libgnutls30t64:amd64 (3.8.9-3+deb13u4) ...
+#9 21.81 Setting up libpsl5t64:amd64 (0.21.2-1.1+b1) ...
+#9 21.82 Setting up liberror-perl (0.17030-1) ...
+#9 21.84 Setting up librtmp1:amd64 (2.4+20151223.gitfa8646d.1-2+b5) ...
+#9 21.85 Setting up libngtcp2-crypto-gnutls8:amd64 (1.11.0-1+deb13u1) ...
+#9 21.87 Setting up libcurl3t64-gnutls:amd64 (8.14.1-2+deb13u5) ...
+#9 21.88 Setting up git (1:2.47.3-0+deb13u1) ...
+#9 21.91 Processing triggers for libc-bin (2.41-12+deb13u4) ...
+#9 22.05 Cloning into '/tmp/abides'...
+#9 30.32 Note: switching to 'f9cbe51342b7dedd9587e4e069040d68a5c6477f'.
+#9 30.32 
+#9 30.32 You are in 'detached HEAD' state. You can look around, make experimental
+#9 30.32 changes and commit them, and you can discard any commits you make in this
+#9 30.32 state without impacting any branches by switching back to a branch.
+#9 30.32 
+#9 30.32 If you want to create a new branch to retain commits you create, you may
+#9 30.32 do so (now or later) by using -c with the switch command. Example:
+#9 30.32 
+#9 30.32   git switch -c <new-branch-name>
+#9 30.32 
+#9 30.32 Or undo this operation with:
+#9 30.32 
+#9 30.32   git switch -
+#9 30.32 
+#9 30.32 Turn off this advice by setting config variable advice.detachedHead to false
+#9 30.32 
+#9 30.32 HEAD is now at f9cbe51 Merge pull request #20 from jpmorganchase/dependabot/pip/scipy-1.10.0
+#9 30.32 error: patch failed: abides-markets/abides_markets/models/order_size_model.py:1
+#9 30.32 error: abides-markets/abides_markets/models/order_size_model.py: patch does not apply
+#9 ERROR: process "/bin/sh -c apt-get update     && apt-get install -y --no-install-recommends git     && git clone \"${ABIDES_REPO}\" /tmp/abides     && git -C /tmp/abides checkout \"${ABIDES_COMMIT}\"     && git -C /tmp/abides apply /tmp/patches/order_size_model.pomegranate-free.patch     && git -C /tmp/abides apply /tmp/patches/kernel_message_ledger.patch     && git -C /tmp/abides apply /tmp/patches/exchange_protocol_stp.patch     && git -C /tmp/abides apply /tmp/patches/oracle_scheduled_jump.patch     && pip install --no-deps /tmp/abides/abides-core /tmp/abides/abides-markets     && apt-get purge -y git     && apt-get autoremove -y     && rm -rf /tmp/abides /tmp/patches /var/lib/apt/lists/*" did not complete successfully: exit code: 1
+------
+ > [4/9] RUN apt-get update     && apt-get install -y --no-install-recommends git     && git clone "https://github.com/jpmorganchase/abides-jpmc-public.git" /tmp/abides     && git -C /tmp/abides checkout "f9cbe51342b7dedd9587e4e069040d68a5c6477f"     && git -C /tmp/abides apply /tmp/patches/order_size_model.pomegranate-free.patch     && git -C /tmp/abides apply /tmp/patches/kernel_message_ledger.patch     && git -C /tmp/abides apply /tmp/patches/exchange_protocol_stp.patch     && git -C /tmp/abides apply /tmp/patches/oracle_scheduled_jump.patch     && pip install --no-deps /tmp/abides/abides-core /tmp/abides/abides-markets     && apt-get purge -y git     && apt-get autoremove -y     && rm -rf /tmp/abides /tmp/patches /var/lib/apt/lists/*:
+30.32 
+30.32 Or undo this operation with:
+30.32 
+30.32   git switch -
+30.32 
+30.32 Turn off this advice by setting config variable advice.detachedHead to false
+30.32 
+30.32 HEAD is now at f9cbe51 Merge pull request #20 from jpmorganchase/dependabot/pip/scipy-1.10.0
+30.32 error: patch failed: abides-markets/abides_markets/models/order_size_model.py:1
+30.32 error: abides-markets/abides_markets/models/order_size_model.py: patch does not apply
+------
+
+ [33m1 warning found (use docker --debug to expand):
+[0m - FromPlatformFlagConstDisallowed: FROM --platform flag should not use constant value "linux/amd64" (line 24)
+Dockerfile:67
+--------------------
+  66 |     COPY patches/ /tmp/patches/
+  67 | >>> RUN apt-get update \
+  68 | >>>     && apt-get install -y --no-install-recommends git \
+  69 | >>>     && git clone "${ABIDES_REPO}" /tmp/abides \
+  70 | >>>     && git -C /tmp/abides checkout "${ABIDES_COMMIT}" \
+  71 | >>>     && git -C /tmp/abides apply /tmp/patches/order_size_model.pomegranate-free.patch \
+  72 | >>>     && git -C /tmp/abides apply /tmp/patches/kernel_message_ledger.patch \
+  73 | >>>     && git -C /tmp/abides apply /tmp/patches/exchange_protocol_stp.patch \
+  74 | >>>     && git -C /tmp/abides apply /tmp/patches/oracle_scheduled_jump.patch \
+  75 | >>>     && pip install --no-deps /tmp/abides/abides-core /tmp/abides/abides-markets \
+  76 | >>>     && apt-get purge -y git \
+  77 | >>>     && apt-get autoremove -y \
+  78 | >>>     && rm -rf /tmp/abides /tmp/patches /var/lib/apt/lists/*
+  79 |     
+--------------------
+ERROR: failed to build: failed to solve: process "/bin/sh -c apt-get update     && apt-get install -y --no-install-recommends git     && git clone \"${ABIDES_REPO}\" /tmp/abides     && git -C /tmp/abides checkout \"${ABIDES_COMMIT}\"     && git -C /tmp/abides apply /tmp/patches/order_size_model.pomegranate-free.patch     && git -C /tmp/abides apply /tmp/patches/kernel_message_ledger.patch     && git -C /tmp/abides apply /tmp/patches/exchange_protocol_stp.patch     && git -C /tmp/abides apply /tmp/patches/oracle_scheduled_jump.patch     && pip install --no-deps /tmp/abides/abides-core /tmp/abides/abides-markets     && apt-get purge -y git     && apt-get autoremove -y     && rm -rf /tmp/abides /tmp/patches /var/lib/apt/lists/*" did not complete successfully: exit code: 1
