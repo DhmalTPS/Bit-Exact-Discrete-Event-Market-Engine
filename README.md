@@ -5,7 +5,7 @@
 message-for-message**, and is shipped in a Docker image that implements the `simulate` and
 `simulate-batch` verbs.
 
-## Results (release candidate `t3sim:rc1`)
+## Results (release candidate `t3sim:rc2`)
 
 | Check | Result |
 |---|---|
@@ -17,6 +17,7 @@ message-for-message**, and is shipped in a Docker image that implements the `sim
 | Byte-identical repeats, also under `--gpus all` | yes |
 | Mean container-window rate over all 71 public units (local Docker Desktop) | **~328k events/s** |
 | Same metric, mega unit (1.17M rows) | ~1.56M events/s (ABIDES: ~10.5k) |
+| Scale test, 13.9M rows, under Final caps (4 CPU, 16 GiB) | 6.8 s container, ~2.0M events/s, 477 MiB peak |
 
 ABIDES's own shipped `events.json` files self-report ~14k events/s, timing the simulation loop
 only. The figures above time the whole container, the way Final timing is measured.
@@ -57,9 +58,9 @@ python adv/adversarial.py gen|ref|check IMAGE       # shadow-sealed suite vs ABI
 
 ## Submitting (needs your accounts)
 
-1. `docker tag t3sim:rc1 <dockerhub-user>/agenthon-t3:rc1 && docker push <dockerhub-user>/agenthon-t3:rc1`.
+1. `docker tag t3sim:rc2 <dockerhub-user>/agenthon-t3:rc2 && docker push <dockerhub-user>/agenthon-t3:rc2`.
    The repository must allow **anonymous pulls by digest**.
-2. `docker inspect --format '{{index .RepoDigests 0}}' <dockerhub-user>/agenthon-t3:rc1` gives the digest.
+2. `docker inspect --format '{{index .RepoDigests 0}}' <dockerhub-user>/agenthon-t3:rc2` gives the digest.
 3. `python submission/make_descriptor.py docker.io <dockerhub-user>/agenthon-t3 sha256:<digest> dev`
    builds a sealed, validated `submission/submission.json`.
 4. `qfbench2 submission pack --descriptor submission/submission.json --team-number <N> --out submission.zip`
