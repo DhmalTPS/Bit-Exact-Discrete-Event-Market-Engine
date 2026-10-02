@@ -15,6 +15,7 @@
 #include <vector>
 
 #include "json.hpp"
+#include "latstream.hpp"
 #include "rng.hpp"
 
 namespace t3 {
@@ -211,36 +212,39 @@ inline Scenario load_scenario(const JVal& j, const int64_t* seed_override = null
     return s;
 }
 
-// ---- output buffers (columnar) -----------------------------------------------------------------
-struct Trace {
-    std::vector<int64_t> t, price, size, order_id;
-    std::vector<int32_t> agent;
-    std::vector<uint8_t> type, side;  // side: 0 BID, 1 ASK
-    size_t rows() const { return t.size(); }
-    void reserve(size_t n) {
-        t.reserve(n); price.reserve(n); size.reserve(n); order_id.reserve(n);
-        agent.reserve(n); type.reserve(n); side.reserve(n);
-    }
+// ---- streaming output sink (fixed-size columnar chunks) ----------------------------------------
+constexpr size_t CHUNK = 32768;
+struct TraceChunk {
+    size_t n = 0;
+    int64_t t[CHUNK], price[CHUNK], size[CHUNK], order_id[CHUNK];
+    int32_t agent[CHUNK];
+    uint8_t side[CHUNK];  // 0 BID, 1 ASK
 };
-struct Ledger {
-    std::vector<int64_t> t_recv, t_send, latency, msg_id, order_id, causal;  // NULL_I64 = null
-    std::vector<int32_t> src, dst;
-    std::vector<uint8_t> kind;
-    size_t rows() const { return t_recv.size(); }
-    void reserve(size_t n) {
-        t_recv.reserve(n); t_send.reserve(n); latency.reserve(n); msg_id.reserve(n);
-        order_id.reserve(n); causal.reserve(n); src.reserve(n); dst.reserve(n); kind.reserve(n);
-    }
+struct LedgerChunk {
+    size_t n = 0;
+    int64_t seq0 = 0;
+    int64_t t_recv[CHUNK], t_send[CHUNK], latency[CHUNK], msg_id[CHUNK], order_id[CHUNK], causal[CHUNK];  // NULL_I64 = null
+    int32_t src[CHUNK], dst[CHUNK];
+    uint8_t kind[CHUNK];
+};
+// The simulator fills `tc`/`lc`; when one is full it calls flush_*(), which must install a fresh
+// chunk. msg_type codes for the whole trace stay in `types` (ORDER_FILLED is decided at the end).
+struct Sink {
+    TraceChunk* tc = nullptr;
+    LedgerChunk* lc = nullptr;
+    std::vector<uint8_t> types;
+    int64_t n_ledger = 0;
+    virtual void flush_trace() = 0;
+    virtual void flush_ledger() = 0;
+    virtual ~Sink() = default;
 };
 
 // ---- simulator ---------------------------------------------------------------------------------
 class Sim {
    public:
-    explicit Sim(const Scenario& sc) : sc_(sc) { setup(); }
+    Sim(const Scenario& sc, Sink& sink, bool async_latency = false) : sc_(sc), sink_(sink), async_lat_(async_latency) { setup(); }
 
     void run();
-    Trace trace;
-    Ledger ledger;
     int64_t n_orders() const { return next_order_id_; }
 
    private:
@@ -283,10 +287,13 @@ class Sim {
     struct Level { int64_t price, total; int32_t head, tail; };
 
     const Scenario& sc_;
+    Sink& sink_;
+    bool async_lat_;
+    std::unique_ptr<LatencyStream> lat_;
     int64_t mkt_open_ = 0, mkt_close_ = 0, start_ = 0, stop_ = 0;
 
     // RNG
-    MT19937 global_, lat_rs_, oracle_rs_;
+    MT19937 global_, oracle_rs_;
 
     // kernel
     std::vector<HE> heap_;
@@ -386,6 +393,37 @@ class Sim {
     int64_t oracle_compute(PyNum ts, double v_adj, PyNum pt, int64_t pv);
     int64_t oracle_advance(int64_t t);
     int64_t oracle_observe(int64_t t, MT19937& rs);
+    // ledger
+    inline void led_row(int64_t t_recv, int64_t t_send, int32_t s, int32_t r, int64_t mid, uint8_t kind,
+                        int64_t oid, int64_t causal) {
+        LedgerChunk& c = *sink_.lc;
+        size_t k = c.n;
+        c.t_recv[k] = t_recv;
+        c.t_send[k] = t_send;
+        c.latency[k] = t_send == NULL_I64 ? 0 : t_recv - t_send;
+        c.src[k] = s;
+        c.dst[k] = r;
+        c.msg_id[k] = mid;
+        c.kind[k] = kind;
+        c.order_id[k] = oid;
+        c.causal[k] = causal;
+        c.n = k + 1;
+        sink_.n_ledger++;
+        if (c.n == CHUNK) sink_.flush_ledger();
+    }
+    inline void tr_row(int64_t t, int32_t agent, uint8_t type, uint8_t side, int64_t price, int64_t size, int64_t oid) {
+        TraceChunk& c = *sink_.tc;
+        size_t k = c.n;
+        c.t[k] = t;
+        c.agent[k] = agent;
+        c.side[k] = side;
+        c.price[k] = price;
+        c.size[k] = size;
+        c.order_id[k] = oid;
+        c.n = k + 1;
+        sink_.types.push_back(type);
+        if (c.n == CHUNK) sink_.flush_trace();
+    }
     // trace
     inline void emit_order(int64_t t, int64_t oid, int32_t agent, uint8_t type, bool is_bid, int64_t price, int64_t size) {
         if (t != g_t_) { flush_group(); g_t_ = t; }
@@ -444,7 +482,11 @@ inline void Sim::setup() {
         }
     }
     if (!sc_.has_latency) throw std::runtime_error("scenario has no latency_config (unsupported)");
-    lat_rs_.seed(global_.seed_draw());
+    {
+        LatParams lp{uint8_t(sc_.lat == L_LOGNORMAL ? 1 : sc_.lat == L_UNIFORM ? 2 : sc_.lat == L_PARETO ? 3 : 0),
+                     sc_.lat_mean, sc_.lat_sigma, sc_.lat_lo, sc_.lat_hi, sc_.lat_alpha, sc_.lat_mu};
+        lat_.reset(new LatencyStream(global_.seed_draw(), lp, async_lat_));
+    }
     (void)global_.seed_draw();  // kernel random_state (never used)
 
     size_t n = agents_.size();
@@ -454,31 +496,10 @@ inline void Sim::setup() {
     slots_.reserve(4 * n + 64);
     g_orders_.reserve(256);
     g_qseen_[0] = g_qseen_[1] = false;
-    // rough reservation from horizon & arrival rates keeps vectors from reallocating mid-run
-    double est = 0;
-    for (auto& c : sc_.agents) est += double(c.count) * (double(sc_.horizon) / double(c.interval)) * (c.type == A_MM ? 6.0 * c.depth : 3.0);
-    size_t est_rows = size_t(std::min(est, 5e7));
-    trace.reserve(est_rows);
-    ledger.reserve(est_rows);
 }
 
 inline int64_t Sim::latency(int32_t s, int32_t r) {
-    if (s == r) return 0;
-    double v;
-    switch (sc_.lat) {
-        case L_LOGNORMAL: v = lat_rs_.lognormal(sc_.lat_mu, sc_.lat_sigma); break;
-        case L_UNIFORM: v = lat_rs_.uniform(sc_.lat_lo, sc_.lat_hi); break;
-        case L_PARETO: {
-            double base = sc_.lat_lo > 0 ? sc_.lat_lo : 1.0;
-            v = base * (1.0 + lat_rs_.pareto(sc_.lat_alpha));
-            break;
-        }
-        default: v = sc_.lat_mean;
-    }
-    // np.clip -> _NPY_MIN(_NPY_MAX(v, lo), hi) with NaN propagation; then int(round(float(.)))
-    double c = std::isnan(v) ? v : (v > sc_.lat_lo ? v : sc_.lat_lo);
-    c = std::isnan(c) ? c : (c < sc_.lat_hi ? c : sc_.lat_hi);
-    return py_round(c);
+    return s == r ? 0 : lat_->next();  // ScenarioLatencyModel: no draw for self-messages
 }
 
 inline void Sim::set_wakeup(int32_t aid, int64_t t) {
@@ -523,15 +544,7 @@ inline void Sim::run() {
         free_slots_.push_back(e.slot);
         if (m.kind == K_WAKEUP) {
             causal_ = e.mid;
-            ledger.t_recv.push_back(cur_);
-            ledger.t_send.push_back(NULL_I64);
-            ledger.latency.push_back(0);
-            ledger.src.push_back(r);
-            ledger.dst.push_back(r);
-            ledger.msg_id.push_back(e.mid);
-            ledger.kind.push_back(K_WAKEUP);
-            ledger.order_id.push_back(NULL_I64);
-            ledger.causal.push_back(NULL_I64);
+            led_row(cur_, NULL_I64, r, r, e.mid, K_WAKEUP, NULL_I64, NULL_I64);
             if (r == 0) ex_wakeup(cur_);
             else ag_wakeup(agents_[r], cur_);
             busy_[r] += cdelay_[r];
@@ -539,15 +552,7 @@ inline void Sim::run() {
             busy_[r] += cdelay_[r];
             causal_ = e.mid;
             int32_t s = int32_t(e.sr >> 32);
-            ledger.t_recv.push_back(m.t_recv);
-            ledger.t_send.push_back(m.t_send);
-            ledger.latency.push_back(m.t_recv - m.t_send);
-            ledger.src.push_back(s);
-            ledger.dst.push_back(r);
-            ledger.msg_id.push_back(e.mid);
-            ledger.kind.push_back(m.kind);
-            ledger.order_id.push_back(m.order_id);
-            ledger.causal.push_back(m.causal);
+            led_row(m.t_recv, m.t_send, s, r, e.mid, m.kind, m.order_id, m.causal);
             if (r == 0) ex_receive(cur_, s, m);
             else ag_receive(agents_[r], cur_, m);
         }
@@ -887,13 +892,7 @@ inline void Sim::flush_group() {
     if (g_t_ == NULL_I64) return;
     for (int q = 0; q < g_nq_; q++) {
         int sd = g_qside_[q];
-        trace.t.push_back(g_t_);
-        trace.agent.push_back(0);
-        trace.type.push_back(T_QUOTE);
-        trace.side.push_back(uint8_t(sd));
-        trace.price.push_back(g_qprice_[sd]);
-        trace.size.push_back(g_qsize_[sd]);
-        trace.order_id.push_back(-1);
+        tr_row(g_t_, 0, T_QUOTE, uint8_t(sd), g_qprice_[sd], g_qsize_[sd], -1);
     }
     g_nq_ = 0;
     g_qseen_[0] = g_qseen_[1] = false;
@@ -909,15 +908,9 @@ inline void Sim::flush_group() {
         if (e.type == T_PARTIAL) {
             if (size_t(e.order_id) >= last_exec_row_.size())
                 last_exec_row_.resize(std::max<size_t>(size_t(e.order_id) + 1, last_exec_row_.size() * 2), -1);
-            last_exec_row_[size_t(e.order_id)] = int64_t(trace.t.size());
+            last_exec_row_[size_t(e.order_id)] = int64_t(sink_.types.size());
         }
-        trace.t.push_back(g_t_);
-        trace.agent.push_back(e.agent);
-        trace.type.push_back(e.type);
-        trace.side.push_back(e.side);
-        trace.price.push_back(e.price);
-        trace.size.push_back(e.size);
-        trace.order_id.push_back(e.order_id);
+        tr_row(g_t_, e.agent, e.type, e.side, e.price, e.size, e.order_id);
     }
     g.clear();
 }
@@ -926,7 +919,7 @@ inline void Sim::finish_trace() {
     flush_group();
     g_t_ = NULL_I64;
     for (int64_t row : last_exec_row_)
-        if (row >= 0) trace.type[size_t(row)] = T_FILLED;
+        if (row >= 0) sink_.types[size_t(row)] = T_FILLED;
 }
 
 }  // namespace t3
