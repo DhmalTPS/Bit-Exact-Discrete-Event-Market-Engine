@@ -1,0 +1,48 @@
+{
+ "scenario_id": "724a7321-adf1-9a8a-135b-e1b65f0e936a",
+ "scenario_family": "matching-engine-semantics",
+ "schema_version": 2,
+ "seed": 9040,
+ "horizon_ns": 1000000000,
+ "exchange_config": {
+  "symbol": "SYM",
+  "tick_size": 1,
+  "lot_size": 1,
+  "min_price": 1,
+  "max_price": 1000000,
+  "stp_policy": "cancel_newest"
+ },
+ "oracle_config": {
+  "type": "mean_reverting",
+  "params": {
+   "initial_price": 100000,
+   "kappa": 0.05,
+   "sigma": 0.001,
+   "dt_ns": 1000000,
+   "noise_type": "gaussian",
+   "jump_intensity": 0.0,
+   "jump_sigma": 0.0
+  }
+ },
+ "latency_config": {
+  "model": "log_normal",
+  "params": {
+   "mean_ns": 5000,
+   "sigma": 0.5,
+   "min_ns": 500,
+   "max_ns": 200000
+  }
+ },
+ "agent_configs": [
+  {
+   "agent_type": "MarketMaker",
+   "count": 3,
+   "params": {
+    "spread_ticks": 2,
+    "depth_levels": 3,
+    "size_per_level": 20,
+    "rebalance_interval_ns": 20000000
+   }
+  }
+ ]
+}

@@ -13,12 +13,26 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
+#include <cstdio>
+#ifdef T3_PROF
+#include <x86intrin.h>
+#endif
 
 #include "json.hpp"
 #include "latstream.hpp"
 #include "rng.hpp"
 
 namespace t3 {
+
+#ifdef T3_PROF
+struct ProfCounters { uint64_t c[8] = {0}; uint64_t n[8] = {0}; };
+inline ProfCounters g_prof;
+#define T3P_BEGIN uint64_t _t3p0 = __rdtsc();
+#define T3P_MARK(i) { uint64_t _t3p1 = __rdtsc(); g_prof.c[i] += _t3p1 - _t3p0; g_prof.n[i]++; _t3p0 = _t3p1; }
+#else
+#define T3P_BEGIN
+#define T3P_MARK(i)
+#endif
 
 constexpr int64_t DATE_NS = 1612483200000000000LL;          // pd.to_datetime("20210205").value
 constexpr int64_t OPEN_OFFSET_NS = 34200LL * 1000000000LL;  // 09:30:00
@@ -290,6 +304,7 @@ class Sim {
     Sink& sink_;
     bool async_lat_;
     std::unique_ptr<LatencyStream> lat_;
+    std::vector<double> line_x_;  // fallback line-distance latency model
     int64_t mkt_open_ = 0, mkt_close_ = 0, start_ = 0, stop_ = 0;
 
     // RNG
@@ -338,15 +353,17 @@ class Sim {
         slots_.emplace_back();
         return uint32_t(slots_.size() - 1);
     }
+    // 4-ary min-heap (half the depth of a binary heap; children share a cache line pair)
     inline void push(const HE& e) {
         heap_.push_back(e);
         size_t i = heap_.size() - 1;
         while (i > 0) {
-            size_t p = (i - 1) >> 1;
-            if (!less(heap_[i], heap_[p])) break;
-            std::swap(heap_[i], heap_[p]);
+            size_t p = (i - 1) >> 2;
+            if (!less(e, heap_[p])) break;
+            heap_[i] = heap_[p];
             i = p;
         }
+        heap_[i] = e;
     }
     inline HE pop() {
         HE top = heap_[0];
@@ -356,12 +373,15 @@ class Sim {
         if (n) {
             size_t i = 0;
             for (;;) {
-                size_t l = 2 * i + 1;
-                if (l >= n) break;
-                size_t c = (l + 1 < n && less(heap_[l + 1], heap_[l])) ? l + 1 : l;
-                if (!less(heap_[c], last)) break;
-                heap_[i] = heap_[c];
-                i = c;
+                size_t c = 4 * i + 1;
+                if (c >= n) break;
+                size_t best = c;
+                size_t e = std::min(c + 4, n);
+                for (size_t k = c + 1; k < e; k++)
+                    if (less(heap_[k], heap_[best])) best = k;
+                if (!less(heap_[best], last)) break;
+                heap_[i] = heap_[best];
+                i = best;
             }
             heap_[i] = last;
         }
@@ -481,8 +501,13 @@ inline void Sim::setup() {
             if (c.type == A_MOMENTUM) a.hist.reserve(size_t(c.lookback) + 2);
         }
     }
-    if (!sc_.has_latency) throw std::runtime_error("scenario has no latency_config (unsupported)");
-    {
+    if (!sc_.has_latency) {
+        // utils.generate_latency_model(n, "deterministic"): agents uniform on a NYC-Seattle line,
+        // latency = int(pairwise distance / light speed in m/ns); no per-message randomness.
+        MT19937 lrs(global_.seed_draw());
+        line_x_.resize(agents_.size());
+        for (auto& x : line_x_) x = lrs.uniform(0.0, 3866660.0);
+    } else {
         LatParams lp{uint8_t(sc_.lat == L_LOGNORMAL ? 1 : sc_.lat == L_UNIFORM ? 2 : sc_.lat == L_PARETO ? 3 : 0),
                      sc_.lat_mean, sc_.lat_sigma, sc_.lat_lo, sc_.lat_hi, sc_.lat_alpha, sc_.lat_mu};
         lat_.reset(new LatencyStream(global_.seed_draw(), lp, async_lat_));
@@ -499,7 +524,9 @@ inline void Sim::setup() {
 }
 
 inline int64_t Sim::latency(int32_t s, int32_t r) {
-    return s == r ? 0 : lat_->next();  // ScenarioLatencyModel: no draw for self-messages
+    if (s == r) return 0;  // ScenarioLatencyModel: no draw for self-messages
+    if (!lat_) return int64_t(std::fabs(line_x_[size_t(s)] - line_x_[size_t(r)]) / 299792458e-9);
+    return lat_->next();
 }
 
 inline void Sim::set_wakeup(int32_t aid, int64_t t) {
@@ -531,6 +558,7 @@ inline void Sim::run() {
     for (size_t a = 0; a < agents_.size(); a++) set_wakeup(int32_t(a), start_);
     cur_ = start_;
     while (!heap_.empty() && cur_ <= stop_) {
+        T3P_BEGIN
         HE e = pop();
         cur_ = e.t;
         int32_t r = int32_t(e.sr & 0xffffffffu);
@@ -542,22 +570,32 @@ inline void Sim::run() {
         busy_[r] = cur_;
         Slot m = slots_[e.slot];
         free_slots_.push_back(e.slot);
+        T3P_MARK(0)
         if (m.kind == K_WAKEUP) {
             causal_ = e.mid;
             led_row(cur_, NULL_I64, r, r, e.mid, K_WAKEUP, NULL_I64, NULL_I64);
+            T3P_MARK(1)
             if (r == 0) ex_wakeup(cur_);
             else ag_wakeup(agents_[r], cur_);
             busy_[r] += cdelay_[r];
+            T3P_MARK(2)
         } else {
             busy_[r] += cdelay_[r];
             causal_ = e.mid;
             int32_t s = int32_t(e.sr >> 32);
             led_row(m.t_recv, m.t_send, s, r, e.mid, m.kind, m.order_id, m.causal);
-            if (r == 0) ex_receive(cur_, s, m);
-            else ag_receive(agents_[r], cur_, m);
+            T3P_MARK(1)
+            if (r == 0) { ex_receive(cur_, s, m); T3P_MARK(3) }
+            else { ag_receive(agents_[r], cur_, m); T3P_MARK(4) }
         }
     }
     finish_trace();
+#ifdef T3_PROF
+    const char* names[] = {"pop+slot", "ledger", "wakeup", "exchange", "agent_recv"};
+    for (int i = 0; i < 5; i++)
+        std::fprintf(stderr, "  %-11s n=%9lu  cyc/call=%7.1f  total_Mcyc=%8.1f\n", names[i], (unsigned long)g_prof.n[i],
+                     g_prof.n[i] ? double(g_prof.c[i]) / double(g_prof.n[i]) : 0.0, double(g_prof.c[i]) / 1e6);
+#endif
 }
 
 // ------------------------------ exchange ------------------------------
