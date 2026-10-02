@@ -29,9 +29,12 @@ struct ProfCounters { uint64_t c[8] = {0}; uint64_t n[8] = {0}; };
 inline ProfCounters g_prof;
 #define T3P_BEGIN uint64_t _t3p0 = __rdtsc();
 #define T3P_MARK(i) { uint64_t _t3p1 = __rdtsc(); g_prof.c[i] += _t3p1 - _t3p0; g_prof.n[i]++; _t3p0 = _t3p1; }
+struct T3PScope { int i; uint64_t t0; explicit T3PScope(int k) : i(k), t0(__rdtsc()) {} ~T3PScope() { g_prof.c[i] += __rdtsc() - t0; g_prof.n[i]++; } };
+#define T3P_SCOPE(i) T3PScope _t3ps(i);
 #else
 #define T3P_BEGIN
 #define T3P_MARK(i)
+#define T3P_SCOPE(i)
 #endif
 
 constexpr int64_t DATE_NS = 1612483200000000000LL;          // pd.to_datetime("20210205").value
@@ -233,6 +236,7 @@ struct TraceChunk {
     int64_t t[CHUNK], price[CHUNK], size[CHUNK], order_id[CHUNK];
     int32_t agent[CHUNK];
     uint8_t side[CHUNK];  // 0 BID, 1 ASK
+    uint8_t type[CHUNK];  // msg_type code (appended to Sink::types by the encoder, in order)
 };
 struct LedgerChunk {
     size_t n = 0;
@@ -246,8 +250,8 @@ struct LedgerChunk {
 struct Sink {
     TraceChunk* tc = nullptr;
     LedgerChunk* lc = nullptr;
-    std::vector<uint8_t> types;
-    int64_t n_ledger = 0;
+    std::vector<uint8_t> types;  // complete only after the encoder has drained every chunk
+    int64_t n_trace = 0, n_ledger = 0;
     virtual void flush_trace() = 0;
     virtual void flush_ledger() = 0;
     virtual ~Sink() = default;
@@ -260,6 +264,8 @@ class Sim {
 
     void run();
     int64_t n_orders() const { return next_order_id_; }
+    // Row index of each order's final execution (-1 if none): those rows are ORDER_FILLED.
+    const std::vector<int64_t>& last_exec_rows() const { return last_exec_row_; }
 
    private:
     // one in-flight delivery
@@ -440,8 +446,9 @@ class Sim {
         c.price[k] = price;
         c.size[k] = size;
         c.order_id[k] = oid;
+        c.type[k] = type;
         c.n = k + 1;
-        sink_.types.push_back(type);
+        sink_.n_trace++;
         if (c.n == CHUNK) sink_.flush_trace();
     }
     // trace
@@ -538,6 +545,7 @@ inline void Sim::set_wakeup(int32_t aid, int64_t t) {
 }
 
 inline Sim::Slot& Sim::send(int32_t s, int32_t r, uint8_t kind, int64_t mid, int64_t delay) {
+    T3P_SCOPE(5)
     int64_t sent = cur_ + cdelay_[s] + delay;
     int64_t at = sent + latency(s, r);
     uint32_t si = alloc_slot();
@@ -591,8 +599,8 @@ inline void Sim::run() {
     }
     finish_trace();
 #ifdef T3_PROF
-    const char* names[] = {"pop+slot", "ledger", "wakeup", "exchange", "agent_recv"};
-    for (int i = 0; i < 5; i++)
+    const char* names[] = {"pop+slot", "ledger", "wakeup", "exchange", "agent_recv", "[send]", "[flush_grp]", "[act]"};
+    for (int i = 0; i < 8; i++)
         std::fprintf(stderr, "  %-11s n=%9lu  cyc/call=%7.1f  total_Mcyc=%8.1f\n", names[i], (unsigned long)g_prof.n[i],
                      g_prof.n[i] ? double(g_prof.c[i]) / double(g_prof.n[i]) : 0.0, double(g_prof.c[i]) / 1e6);
 #endif
@@ -825,6 +833,7 @@ inline void Sim::place(Agent& a, int64_t t, int64_t qty, bool is_bid, int64_t pr
 }
 
 inline void Sim::act(Agent& a, int64_t t) {
+    T3P_SCOPE(7)
     const AgentCfg& c = *a.cfg;
     int64_t bid = a.bid, ask = a.ask;
     switch (a.type) {
@@ -927,6 +936,7 @@ inline int64_t Sim::oracle_observe(int64_t t, MT19937& rs) {
 
 // ------------------------------ trace assembly ------------------------------
 inline void Sim::flush_group() {
+    T3P_SCOPE(6)
     if (g_t_ == NULL_I64) return;
     for (int q = 0; q < g_nq_; q++) {
         int sd = g_qside_[q];
@@ -946,7 +956,7 @@ inline void Sim::flush_group() {
         if (e.type == T_PARTIAL) {
             if (size_t(e.order_id) >= last_exec_row_.size())
                 last_exec_row_.resize(std::max<size_t>(size_t(e.order_id) + 1, last_exec_row_.size() * 2), -1);
-            last_exec_row_[size_t(e.order_id)] = int64_t(sink_.types.size());
+            last_exec_row_[size_t(e.order_id)] = sink_.n_trace;
         }
         tr_row(g_t_, e.agent, e.type, e.side, e.price, e.size, e.order_id);
     }
@@ -956,8 +966,6 @@ inline void Sim::flush_group() {
 inline void Sim::finish_trace() {
     flush_group();
     g_t_ = NULL_I64;
-    for (int64_t row : last_exec_row_)
-        if (row >= 0) sink_.types[size_t(row)] = T_FILLED;
 }
 
 }  // namespace t3

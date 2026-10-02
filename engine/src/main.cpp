@@ -139,6 +139,7 @@ class StreamSink : public Sink {
             tcols_[4].page_i64(c->price, n);
             tcols_[5].page_i64(c->size, n);
             tcols_[6].page_i64(c->order_id, n);
+            types.insert(types.end(), c->type, c->type + n);
             c->n = 0;
             give(tfree_, c);
         });
@@ -167,11 +168,13 @@ class StreamSink : public Sink {
         lc->seq0 = next_seq;
     }
     // Drain everything and build both file images.
-    void finish(out::FileImage& trace_img, out::FileImage& ledger_img) {
+    void finish(out::FileImage& trace_img, out::FileImage& ledger_img, const std::vector<int64_t>& last_exec_rows) {
         if (tc->n) flush_trace();
         if (lc->n) flush_ledger();
         tw_.finish();
         lw_.finish();
+        for (int64_t row : last_exec_rows)
+            if (row >= 0) types[size_t(row)] = T_FILLED;
         size_t n = types.size();
         for (size_t i = 0; i < n; i += CHUNK) tcols_[2].page_codes(types.data() + i, std::min(CHUNK, n - i));
         out::assemble(trace_img, tcols_, int64_t(n), kTracePandas);
@@ -226,7 +229,7 @@ static RunResult run_one(const std::string& config_path, const fs::path& out_tra
     sim.run();
     double t_sim = now_sec();
     out::FileImage timg, limg;
-    sink->finish(timg, limg);
+    sink->finish(timg, limg, sim.last_exec_rows());
     double t_enc = now_sec();
     RunResult r;
     r.scenario_id = sc.scenario_id;
