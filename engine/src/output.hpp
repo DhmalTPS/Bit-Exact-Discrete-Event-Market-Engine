@@ -269,13 +269,9 @@ struct FileImage {
     Buf head, foot;
     std::vector<std::pair<const uint8_t*, size_t>> segs;
     std::string sha256() const {
-        // contiguous hash needs one buffer; segments are hashed via a staging copy of small size
-        size_t total = 0;
-        for (auto& s : segs) total += s.second;
-        Buf all;
-        all.reserve(total);
-        for (auto& s : segs) all.insert(all.end(), s.first, s.first + s.second);
-        return sha256_hex(all.data(), all.size());
+        Sha256 h;
+        for (auto& sg : segs) h.update(sg.first, sg.second);
+        return h.hex();
     }
     void write(const std::string& path) const {
         int fd = ::open(path.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);

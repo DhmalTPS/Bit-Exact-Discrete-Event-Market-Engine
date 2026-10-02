@@ -10,6 +10,7 @@
 #include <cmath>
 #include <cstdint>
 #include <cstring>
+#include <deque>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -318,7 +319,7 @@ class Sim {
 
     // kernel
     std::vector<HE> heap_, wheap_;
-    std::vector<Slot> slots_;
+    std::deque<Slot> slots_;  // deque: references stay valid while handlers allocate
     std::vector<uint32_t> free_slots_;
     int64_t cur_ = 0;
     int64_t next_mid_ = 1;
@@ -534,7 +535,6 @@ inline void Sim::setup() {
     cdelay_.assign(n, DEFAULT_COMPUTATION_DELAY);
     heap_.reserve(4 * n + 64);
     wheap_.reserve(n + 8);
-    slots_.reserve(4 * n + 64);
     g_orders_.reserve(256);
     g_qseen_[0] = g_qseen_[1] = false;
 }
@@ -586,8 +586,7 @@ inline void Sim::run() {
             continue;
         }
         busy_[r] = cur_;
-        Slot m = slots_[e.slot];
-        free_slots_.push_back(e.slot);
+        const Slot& m = slots_[e.slot];
         T3P_MARK(0)
         if (m.kind == K_WAKEUP) {
             causal_ = e.mid;
@@ -606,6 +605,7 @@ inline void Sim::run() {
             if (r == 0) { ex_receive(cur_, s, m); T3P_MARK(3) }
             else { ag_receive(agents_[r], cur_, m); T3P_MARK(4) }
         }
+        free_slots_.push_back(e.slot);  // only now: handlers above read the slot in place
     }
     finish_trace();
 #ifdef T3_PROF

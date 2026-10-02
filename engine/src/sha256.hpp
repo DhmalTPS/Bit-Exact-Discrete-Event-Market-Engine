@@ -1,5 +1,6 @@
 // SHA-256 with an x86 SHA-NI fast path (runtime-detected) and a portable fallback.
 #pragma once
+#include <algorithm>
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
@@ -132,5 +133,52 @@ inline std::string sha256_hex(const uint8_t* data, size_t n, bool allow_hw = tru
     for (int i = 0; i < 8; i++) std::snprintf(hex + 8 * i, 9, "%08x", st[i]);
     return std::string(hex, 64);
 }
+
+// Streaming SHA-256 over several buffers (same block functions as sha256_hex).
+class Sha256 {
+   public:
+    Sha256() {
+        using namespace sha_detail;
+        fn_ = blocks_portable;
+#if defined(__x86_64__)
+        static const bool hw = have_shani();
+        if (hw) fn_ = blocks_shani;
+#endif
+    }
+    void update(const uint8_t* p, size_t n) {
+        total_ += n;
+        if (nbuf_) {
+            size_t take = std::min(n, size_t(64) - nbuf_);
+            std::memcpy(buf_ + nbuf_, p, take);
+            nbuf_ += take; p += take; n -= take;
+            if (nbuf_ < 64) return;
+            fn_(st_, buf_, 1);
+            nbuf_ = 0;
+        }
+        size_t full = n / 64;
+        if (full) fn_(st_, p, full);
+        p += full * 64; n -= full * 64;
+        std::memcpy(buf_, p, n);
+        nbuf_ = n;
+    }
+    std::string hex() {
+        uint8_t tail[128] = {0};
+        std::memcpy(tail, buf_, nbuf_);
+        tail[nbuf_] = 0x80;
+        size_t tl = (nbuf_ + 9 <= 64) ? 64 : 128;
+        uint64_t bits = uint64_t(total_) * 8;
+        for (int i = 0; i < 8; i++) tail[tl - 1 - i] = uint8_t(bits >> (8 * i));
+        fn_(st_, tail, tl / 64);
+        char h[65];
+        for (int i = 0; i < 8; i++) std::snprintf(h + 8 * i, 9, "%08x", st_[i]);
+        return std::string(h, 64);
+    }
+
+   private:
+    void (*fn_)(uint32_t*, const uint8_t*, size_t);
+    uint32_t st_[8] = {0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19};
+    uint8_t buf_[64];
+    size_t nbuf_ = 0, total_ = 0;
+};
 
 }  // namespace t3

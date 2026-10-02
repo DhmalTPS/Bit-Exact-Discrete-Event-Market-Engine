@@ -236,18 +236,21 @@ static RunResult run_one(const std::string& config_path, const fs::path& out_tra
     r.seed = sc.seed;
     r.n_events = sink->types.size();
     r.n_messages = size_t(sink->n_ledger);
+    // ledger write runs concurrently with hashing + writing the trace
+    std::string lpath = (dir / "message_trace.parquet").string();
+    std::thread lw([&] { limg.write(lpath); });
     r.sha = timg.sha256();
     double t_sha = now_sec();
     timg.write(out_trace.string());
-    limg.write((dir / "message_trace.parquet").string());
+    lw.join();
     size_t tbytes = 0, lbytes = 0;
     for (auto& s : timg.segs) tbytes += s.second;
     for (auto& s : limg.segs) lbytes += s.second;
     r.wall = now_sec() - t_start;
     if (r.wall <= 0) r.wall = 1e-9;
     if (std::getenv("T3_PROFILE"))
-        std::fprintf(stderr, "profile rows=%zu msgs=%zu parse=%.4f sim=%.4f encode=%.4f sha=%.4f write=%.4f bytes=%zu+%zu\n",
-                     r.n_events, r.n_messages, t_parse - t_start, t_sim - t_parse, t_enc - t_sim, t_sha - t_enc,
+        std::fprintf(stderr, "profile rows=%zu msgs=%zu total=%.4f parse=%.4f sim=%.4f encode=%.4f sha=%.4f write=%.4f bytes=%zu+%zu\n",
+                     r.n_events, r.n_messages, now_sec() - t_start, t_parse - t_start, t_sim - t_parse, t_enc - t_sim, t_sha - t_enc,
                      now_sec() - t_sha, tbytes, lbytes);
     std::ostringstream ev;
     ev << "{\n"
