@@ -20,11 +20,16 @@ DIGEST=$(docker inspect --format '{{index .RepoDigests 0}}' "${REPO}:${TAG}" | s
 echo "digest: ${DIGEST}"
 
 echo "== 2/5 anonymous pull check (the organizers pull without credentials)"
-TOKEN=$(curl -fsS "https://auth.docker.io/token?service=registry.docker.io&scope=repository:${REPO}:pull" \
-        | python -c "import json,sys; print(json.load(sys.stdin)['token'])")
-CODE=$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer ${TOKEN}" \
-       -H "Accept: application/vnd.docker.distribution.manifest.v2+json, application/vnd.oci.image.index.v1+json, application/vnd.oci.image.manifest.v1+json, application/vnd.docker.distribution.manifest.list.v2+json" \
-       "https://registry-1.docker.io/v2/${REPO}/manifests/${DIGEST}")
+CODE=000
+for attempt in 1 2 3 4 5; do  # retried: the registry token endpoint is occasionally flaky
+    TOKEN=$(curl -fsS "https://auth.docker.io/token?service=registry.docker.io&scope=repository:${REPO}:pull" \
+            | python -c "import json,sys; print(json.load(sys.stdin)['token'])" || true)
+    CODE=$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer ${TOKEN}" \
+           -H "Accept: application/vnd.docker.distribution.manifest.v2+json, application/vnd.oci.image.index.v1+json, application/vnd.oci.image.manifest.v1+json, application/vnd.docker.distribution.manifest.list.v2+json" \
+           "https://registry-1.docker.io/v2/${REPO}/manifests/${DIGEST}" || true)
+    [ "$CODE" = "200" ] && break
+    echo "  attempt ${attempt}: HTTP ${CODE}, retrying"; sleep 3
+done
 if [ "$CODE" != "200" ]; then
     echo "ANONYMOUS PULL FAILED (HTTP ${CODE}): make ${REPO} PUBLIC on hub.docker.com, then re-run." >&2
     exit 1
