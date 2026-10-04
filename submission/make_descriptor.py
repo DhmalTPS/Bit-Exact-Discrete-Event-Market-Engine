@@ -33,6 +33,9 @@ def main():
     d.pop("descriptor_digest", None)
     sealed = seal_descriptor_digest(d)
     SubmissionDescriptor.from_mapping(sealed)  # raises on any contract violation
+    # `qfbench2 submission pack` derives team_id from the team number + key and reseals; it refuses
+    # a descriptor whose team_id disagrees, so hand it the validated body without one.
+    sealed = {k: v for k, v in sealed.items() if k not in ("team_id", "descriptor_digest")}
     out.write_text(json.dumps(sealed, indent=2) + "\n")
     print(f"wrote {out}\n{json.dumps(sealed, indent=2)}")
 
