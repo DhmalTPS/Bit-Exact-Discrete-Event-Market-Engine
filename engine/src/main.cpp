@@ -22,6 +22,9 @@
 #include "sim.hpp"
 
 namespace fs = std::filesystem;
+#ifndef T3_ASYNC_MIN_ROWS
+#define T3_ASYNC_MIN_ROWS 5000
+#endif
 using namespace t3;
 
 static const char* kTracePandas =
@@ -206,6 +209,20 @@ class StreamSink : public Sink {
     }
 };
 
+// Rough trace-size estimate from the configuration alone (agent wakeups x rows per wakeup).
+static double estimate_rows(const Scenario& sc) {
+    double r = 0;
+    for (auto& a : sc.agents)
+        r += double(a.count) * double(sc.horizon) / double(a.interval) * (a.type == A_MM ? 4.0 * double(a.depth) : 3.0);
+    return r;
+}
+// Worker threads (latency producer + 2 encoders) only pay off above a size threshold; below it
+// the run is fully synchronous. T3_ASYNC=0/1 overrides (benchmarking). Output is identical.
+static bool use_async(const Scenario& sc, bool allowed) {
+    if (const char* e = std::getenv("T3_ASYNC")) return e[0] == '1';
+    return allowed && estimate_rows(sc) > double(T3_ASYNC_MIN_ROWS);
+}
+
 struct RunResult {
     std::string scenario_id;
     int64_t seed = 0;
@@ -224,6 +241,7 @@ static RunResult run_one(const std::string& config_path, const fs::path& out_tra
     fs::path dir = out_trace.parent_path();
     if (!dir.empty()) fs::create_directories(dir);
     double t_parse = now_sec();
+    async = use_async(sc, async);
     auto sink = std::make_unique<StreamSink>(async);
     Sim sim(sc, *sink, async);
     sim.run();
@@ -238,11 +256,15 @@ static RunResult run_one(const std::string& config_path, const fs::path& out_tra
     r.n_messages = size_t(sink->n_ledger);
     // ledger write runs concurrently with hashing + writing the trace
     std::string lpath = (dir / "message_trace.parquet").string();
-    std::thread lw([&] { limg.write(lpath); });
+    size_t lsize = 0;
+    for (auto& sg : limg.segs) lsize += sg.second;
+    std::thread lw;
+    if (lsize > (1u << 20)) lw = std::thread([&] { limg.write(lpath); });  // only worth a thread when big
+    else limg.write(lpath);
     r.sha = timg.sha256();
     double t_sha = now_sec();
     timg.write(out_trace.string());
-    lw.join();
+    if (lw.joinable()) lw.join();
     size_t tbytes = 0, lbytes = 0;
     for (auto& s : timg.segs) tbytes += s.second;
     for (auto& s : limg.segs) lbytes += s.second;

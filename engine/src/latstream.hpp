@@ -41,6 +41,9 @@ inline int64_t lat_draw(MT19937& rs, const LatParams& p) {
 class LatencyStream {
    public:
     static constexpr size_t BLOCK = 8192, NBLK = 8;  // ring of 8 blocks
+    // Block g holds the next bsize(g) draws: small first blocks keep start-up cheap for tiny
+    // scenarios; consecutive blocks are consecutive draws, so the stream is unchanged.
+    static constexpr size_t bsize(uint64_t g) { return g >= 5 ? BLOCK : (size_t(256) << g); }
 
     LatencyStream(uint32_t seed, const LatParams& p, bool async) : p_(p), async_(async) {
         rs_.seed(seed);
@@ -57,7 +60,7 @@ class LatencyStream {
             fill(0, 0);
         }
         cur_ = ring_.get();
-        end_ = cur_ + BLOCK;
+        end_ = cur_ + bsize(0);
     }
     ~LatencyStream() {
         stop_.store(true, std::memory_order_release);
@@ -86,7 +89,8 @@ class LatencyStream {
 
     void fill(size_t slot, uint64_t gen) {
         int64_t* b = ring_.get() + slot * BLOCK;
-        for (size_t k = 0; k < BLOCK; k++) b[k] = lat_draw(rs_, p_);
+        const size_t n = bsize(gen);
+        for (size_t k = 0; k < n; k++) b[k] = lat_draw(rs_, p_);
         ready_[slot].store(gen + 1, std::memory_order_release);
     }
     void produce() {
@@ -108,7 +112,7 @@ class LatencyStream {
         else
             while (ready_[slot].load(std::memory_order_acquire) != gen_ + 1) std::this_thread::yield();
         cur_ = ring_.get() + slot * BLOCK;
-        end_ = cur_ + BLOCK;
+        end_ = cur_ + bsize(gen_);
     }
 };
 
