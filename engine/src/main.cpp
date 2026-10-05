@@ -259,7 +259,7 @@ static RunResult run_one(const std::string& config_path, const fs::path& out_tra
     size_t lsize = 0;
     for (auto& sg : limg.segs) lsize += sg.second;
     std::thread lw;
-    if (lsize > (1u << 20)) lw = std::thread([&] { limg.write(lpath); });  // only worth a thread when big
+    if (lsize > (64u << 10)) lw = std::thread([&] { limg.write(lpath); });  // skip the thread only for tiny ledgers (measured: >=64 KB pays off)
     else limg.write(lpath);
     r.sha = timg.sha256();
     double t_sha = now_sec();
