@@ -5,7 +5,7 @@
 message-for-message**, and is shipped in a Docker image that implements the `simulate` and
 `simulate-batch` verbs.
 
-## Results (release candidate `t3sim:rc2`)
+## Results (release candidate `t3sim:rc4`)
 
 | Check | Result |
 |---|---|
@@ -58,9 +58,9 @@ python adv/adversarial.py gen|ref|check IMAGE       # shadow-sealed suite vs ABI
 
 ## Submitting (needs your accounts)
 
-1. `docker tag t3sim:rc2 <dockerhub-user>/agenthon-t3:rc2 && docker push <dockerhub-user>/agenthon-t3:rc2`.
+1. `docker tag t3sim:rc4 <dockerhub-user>/agenthon-t3:rc4 && docker push <dockerhub-user>/agenthon-t3:rc4`.
    The repository must allow **anonymous pulls by digest**.
-2. `docker inspect --format '{{index .RepoDigests 0}}' <dockerhub-user>/agenthon-t3:rc2` gives the digest.
+2. `docker inspect --format '{{index .RepoDigests 0}}' <dockerhub-user>/agenthon-t3:rc4` gives the digest.
 3. `python submission/make_descriptor.py docker.io <dockerhub-user>/agenthon-t3 sha256:<digest> dev`
    builds a sealed, validated `submission/submission.json`.
 4. `qfbench2 submission pack --descriptor submission/submission.json --team-number <N> --out submission.zip`
@@ -75,3 +75,12 @@ python adv/adversarial.py gen|ref|check IMAGE       # shadow-sealed suite vs ABI
 | libm or compiler FP differences | glibc static link, FP contraction off. Validated in the Docker image itself. |
 | Memory or time on a much larger SS-BENCH | Streaming output keeps RSS small (54 MB for 1.17M rows). Throughput is about 5M rows/s per core. |
 | Message ids ≥ 2³², or more than 2³¹ rows in a page | Not reachable at any size ABIDES can generate. |
+
+## Release rule (learned from rc3)
+
+rc3 passed every correctness gate yet was 4% slower on mid-size units: its write-thread threshold
+was tuned on a subset that missed the mid-size units. Any new release candidate must therefore pass
+**both** `submission/preflight.py` **and** a head-to-head race of the *shipped image binary* against
+the previous RC on all 71 units (`engine/test/rc_ab_all.sh`, then `engine/test/recheck.sh` with 9
+repeats for any unit that looks slower). Development scores: rc2 8,703,131.73; rc3 8,584,091.99 (regression);
+rc4 = fix, ≥ rc2 on every unit.
