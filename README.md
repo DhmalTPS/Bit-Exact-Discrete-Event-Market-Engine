@@ -13,7 +13,7 @@ message-for-message**, and is shipped in a Docker image that implements the `sim
 | Public batch sub-scenarios vs shipped references (exact) | **30 / 30** |
 | Official `run_regression.py` | **65 / 65 PASS** |
 | Official batch gates (`check_aggregate` + `score_isolation`) | **6 / 6 PASS** |
-| Adversarial shadow-sealed suite vs the real ABIDES image (exact) | **36 / 36** |
+| Adversarial shadow-sealed suite vs the real ABIDES image (exact) | **230 / 230** (36 targeted + 194 random fuzz; 8 more crash ABIDES itself) |
 | Byte-identical repeats, also under `--gpus all` | yes |
 | Mean container-window rate over all 71 public units (local Docker Desktop) | **~328k events/s** |
 | Same metric, mega unit (1.17M rows) | ~1.56M events/s (ABIDES: ~10.5k) |

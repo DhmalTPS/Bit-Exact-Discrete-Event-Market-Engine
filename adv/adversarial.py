@@ -164,6 +164,50 @@ def scenarios():
     return out
 
 
+def fuzz_scenarios(n, seed=777):
+    """Random scenarios spanning the whole documented parameter envelope (and beyond it):
+    agent mixes incl. empty types, every latency model incl. none, protocol delays, both STP
+    policies, oracle kappa/sigma/jumps/scheduled shocks, small and large prices, short horizons."""
+    rng = random.Random(seed)
+    out = {}
+    for i in range(n):
+        sc = base(rng.randrange(2**31), horizon_s=rng.choice([0.05, 0.1, 0.2, 0.3, 0.5]))
+        lat = rng.choice(["log_normal", "uniform", "pareto", "deterministic", "none"])
+        if lat == "none":
+            del sc["latency_config"]
+        elif lat == "log_normal":
+            sc["latency_config"] = {"model": lat, "params": {"mean_ns": rng.choice([50, 500, 5000, 50000]), "sigma": rng.choice([0.1, 0.5, 1.0, 2.0]),
+                                                           "min_ns": rng.choice([0, 10, 1000]), "max_ns": rng.choice([1e5, 1e7])}}
+        elif lat == "uniform":
+            lo = rng.choice([0, 100, 2000]); sc["latency_config"] = {"model": lat, "params": {"min_ns": lo, "max_ns": lo + rng.choice([1, 50, 5000, 200000])}}
+        elif lat == "pareto":
+            sc["latency_config"] = {"model": lat, "params": {"alpha": rng.choice([0.6, 1.0, 1.5, 3.0]), "min_ns": rng.choice([0, 50, 2000]), "max_ns": rng.choice([1e5, 1e8])}}
+        else:
+            sc["latency_config"] = {"model": lat, "params": {"mean_ns": rng.choice([0, 1, 300, 20000])}}
+        for a in sc["agent_configs"]:
+            a["count"] = rng.choice([0, 1, 2, 3, 6, 10])
+            if a["agent_type"] != "MarketMaker":
+                a["params"]["arrival_rate_hz"] = rng.choice([20.0, 100.0, 500.0, 3000.0])
+        mm = agent(sc, "MarketMaker"); mm["count"] = rng.choice([0, 1, 1, 2, 4])
+        mm["params"].update(spread_ticks=rng.choice([1, 2, 3, 6]), depth_levels=rng.choice([1, 3, 8]),
+                            size_per_level=rng.choice([1, 10, 50]), rebalance_interval_ns=rng.choice([200000, 2000000, 20000000]))
+        nz = agent(sc, "NoiseTrader")["params"]; nz.update(price_offset_ticks=rng.choice([0, 1, 5, 30]), order_size_std=rng.choice([0.0, 2.0, 10.0]))
+        agent(sc, "ValueTrader")["params"]["threshold_ticks"] = rng.choice([0, 1, 5])
+        mo = agent(sc, "MomentumTrader")["params"]; mo.update(lookback=rng.choice([1, 3, 10]), threshold_ticks=rng.choice([0, 1, 4]))
+        op = sc["oracle_config"]["params"]
+        op.update(initial_price=rng.choice([20, 1000, 100000, 500000]), kappa=rng.choice([0.0, 0.01, 0.5, 5.0]),
+                  sigma=rng.choice([0.0001, 0.001, 0.01]), jump_intensity=rng.choice([0.0, 0.0, 5.0, 100.0]), jump_sigma=rng.choice([0.0, 50.0, 3000.0]))
+        if rng.random() < 0.3:
+            op["scheduled_jump"] = {"time_ns": rng.choice([0, 10**7, 10**8]), "magnitude": rng.choice([-5000, -50, 70, 4000])}
+        if rng.random() < 0.4:
+            sc["exchange_config"].update(protocol_enforcement=True, stp_policy=rng.choice(["cancel_newest", "cancel_oldest"]),
+                                         ack_delay_ns=rng.choice([0, 0, 300, 20000]), compute_delay_ns=rng.choice([0, 0, 40, 5000]))
+        if not any(a["count"] for a in sc["agent_configs"]):
+            agent(sc, "NoiseTrader")["count"] = 3
+        out[f"zfuzz_{i:03d}"] = sc
+    return out
+
+
 def docker_run(img, scen, outdir, timeout=900):
     outdir.mkdir(parents=True, exist_ok=True)
     subprocess.run(["docker", "run", "--rm", "--network", "none", "-v", f"{scen}:/input/scenario.json:ro",
@@ -184,7 +228,12 @@ def same(a: pd.DataFrame, b: pd.DataFrame) -> str:
 
 def main():
     cmd = sys.argv[1]
-    if cmd == "gen":
+    if cmd == "genfuzz":
+        SC.mkdir(parents=True, exist_ok=True)
+        for name, sc in fuzz_scenarios(int(sys.argv[2])).items():
+            (SC / f"{name}.json").write_text(json.dumps(sc, indent=1))
+        print(len(list(SC.glob("zfuzz_*.json"))), "fuzz scenarios")
+    elif cmd == "gen":
         SC.mkdir(parents=True, exist_ok=True)
         for name, sc in scenarios().items():
             (SC / f"{name}.json").write_text(json.dumps(sc, indent=1))
