@@ -1,8 +1,8 @@
 #!/bin/bash
-S="/mnt/f/#Project/Agenthon_T3_Simulation/build/scratch"; mkdir -p $S/cfg $S/o $S/all  # in-project scratch only
+ROOT="$(cd "$(dirname "$0")/../.." && pwd)"; S="$ROOT/build/scratch"; mkdir -p $S/cfg $S/o $S/all  # in-project scratch only
 # Race the exact rc2 and rc3 image binaries on every public unit (incl. batch), interleaved,
 # min wall of 5 runs each; prints unit rows rc2_ms rc3_ms
-cd "/mnt/f/#Project/Agenthon_T3_Simulation"
+cd "$ROOT"
 cp build/rc/rc2 build/rc/rc3 $S/ && chmod +x $S/rc2 $S/rc3
 U=upstream/track3-simulation-public/units
 mkdir -p $S/all

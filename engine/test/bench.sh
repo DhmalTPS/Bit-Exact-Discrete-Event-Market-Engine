@@ -1,7 +1,7 @@
 #!/bin/bash
-S="/mnt/f/#Project/Agenthon_T3_Simulation/build/scratch"; mkdir -p $S/cfg $S/o $S/all  # in-project scratch only
+ROOT="$(cd "$(dirname "$0")/../.." && pwd)"; S="$ROOT/build/scratch"; mkdir -p $S/cfg $S/o $S/all  # in-project scratch only
 # usage: bench.sh "<g++ flags>" [units...]  -> min-of-3 phase times per unit
-cd "/mnt/f/#Project/Agenthon_T3_Simulation"; mkdir -p $S
+cd "$ROOT"; mkdir -p $S
 g++ $1 -std=c++17 -ffp-contract=off -Wno-missing-field-initializers -o $S/t3b engine/src/main.cpp -lpthread || exit 1
 U=upstream/track3-simulation-public/units
 shift

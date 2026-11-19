@@ -1,10 +1,10 @@
 #!/bin/bash
-S="/mnt/f/#Project/Agenthon_T3_Simulation/build/scratch"; mkdir -p $S/cfg $S/o $S/all  # in-project scratch only
+ROOT="$(cd "$(dirname "$0")/../.." && pwd)"; S="$ROOT/build/scratch"; mkdir -p $S/cfg $S/o $S/all  # in-project scratch only
 # A/B two source trees: build both, interleave 5 runs per unit, report the minimum of
 # METRIC=sim (simulation loop, from T3_PROFILE) or METRIC=wall (whole run, from stdout JSON).
 A=$1; B=$2; shift 2
 METRIC=${METRIC:-sim}
-cd "/mnt/f/#Project/Agenthon_T3_Simulation"
+cd "$ROOT"
 g++ -O2 -std=c++17 -march=x86-64-v2 -ffp-contract=off -w -o $S/A "$A/main.cpp" -lpthread || exit 1
 g++ -O2 -std=c++17 -march=x86-64-v2 -ffp-contract=off -w -o $S/B "$B/main.cpp" -lpthread || exit 1
 one() {  # binary -> metric value

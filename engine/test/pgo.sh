@@ -1,8 +1,8 @@
 #!/bin/bash
-S="/mnt/f/#Project/Agenthon_T3_Simulation/build/scratch"; mkdir -p $S/cfg $S/o $S/all  # in-project scratch only
+ROOT="$(cd "$(dirname "$0")/../.." && pwd)"; S="$ROOT/build/scratch"; mkdir -p $S/cfg $S/o $S/all  # in-project scratch only
 # Build a PGO binary: instrument, train on a spread of public units, rebuild with the profile.
 set -e
-cd "/mnt/f/#Project/Agenthon_T3_Simulation"
+cd "$ROOT"
 OUT=${1:-$S/t3pgo}
 P=$S/pgo; rm -rf $P; mkdir -p $P
 FLAGS="-O2 -std=c++17 -march=x86-64-v2 -ffp-contract=off -w"

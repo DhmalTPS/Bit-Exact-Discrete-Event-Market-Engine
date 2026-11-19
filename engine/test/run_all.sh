@@ -1,7 +1,7 @@
 #!/bin/bash
 # Run t3sim on every public single unit and every batch sub; outputs under out/<case>/
 set -e
-cd "/mnt/f/#Project/Agenthon_T3_Simulation"
+ROOT="$(cd "$(dirname "$0")/../.." && pwd)"; cd "$ROOT"
 U=upstream/track3-simulation-public/units
 for u in $U/*/; do
   n=$(basename $u)

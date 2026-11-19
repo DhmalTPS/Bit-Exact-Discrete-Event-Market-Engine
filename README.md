@@ -49,7 +49,7 @@ differently by the platform's `libm` changes every subsequent row.
 4. **Floating-point discipline.** Build with `-ffp-contract=off`, never `-ffast-math`, and link glibc `libm`
    statically: the Windows UCRT `log` differs from glibc in the last ULP, which is enough to break exactness.
 
-## Results (release candidate `rc4`)
+## Results (correctness: shipped `rc4`; throughput: measured on the build named in each row)
 
 | Check | Result |
 |---|---|
@@ -59,9 +59,9 @@ differently by the platform's `libm` changes every subsequent row.
 | Official batch gates (`check_aggregate` + `score_isolation`) | **6 / 6 PASS** |
 | Adversarial suite vs the real ABIDES image (exact) | **230 / 230** (36 targeted + 194 random fuzz); 8 further generated scenarios crash ABIDES itself and have no reference (`adv/check_rc4.txt`) |
 | Byte-identical repeats, also under `--gpus all` | yes |
-| Scale test, 13.9M rows, under Final caps (4 CPU, 16 GiB) | **6.8 s** container time, ~2.0M events/s, 477 MiB peak |
-| Largest public unit (1.17M rows) | ~1.56M events/s vs ABIDES ~10.5k (**~150x**) |
-| Mean container-window rate over all 71 public units (local Docker Desktop) | ~328k events/s |
+| Scale test, 13.9M rows, under Final caps (4 CPU, 16 GiB), `rc2` | **6.8 s** container time, ~2.0M events/s, 477 MiB peak |
+| Largest public unit (1.17M rows), `rc1` | ~1.56M events/s (container window) vs ABIDES ~10.5k (its own loop-only timing) (**~150x**) |
+| Mean container-window rate over all 71 public units (local Docker Desktop), `rc1` (`analysis/rc1_container_rates.json`) | ~328k events/s |
 | Final leaderboard | **23 / 55** |
 
 ABIDES's own `events.json` files self-report ~14k events/s, timing the simulation loop only; the figures
@@ -69,11 +69,14 @@ above time the whole container, as the organiser does. Because the trace is exac
 (Tier-B) and stylized-fact metric is 0, the same as the baseline compared with itself.
 
 **A regression that passed every correctness gate.** rc3 was exact everywhere yet ~4% slower on mid-size
-units: its concurrent-ledger-write threshold had been tuned on a subset that missed them. Development scores
-were rc2 8,703,131.73 and rc3 8,584,091.99. rc4 lowered the threshold from 1 MB to 64 KB and is at or above
-rc2 on every unit (`analysis/rc2_vs_rc3.txt`). Since then a release candidate must pass both
+units (`analysis/rc2_vs_rc3.txt`: slower on 57 of 71 units): its concurrent-ledger-write threshold had been tuned on a subset that missed them. Development leaderboard scores (CodaBench, not recorded in this repository)
+were rc2 8,703,131.73 and rc3 8,584,091.99. rc4 lowered the threshold from 1 MB to 64 KB; its build is on
+average 5% faster than rc2 over the 71 units, though still slower on 13 of them, by up to 7% (`analysis/rc2_vs_v1.txt`;
+the 9-repeat rechecks of those units were not saved). Since then a release candidate must pass both
 `submission/preflight.py` and a head-to-head race of the shipped image binary against the previous release on
-all 71 units (`engine/test/rc_ab_all.sh`, then `engine/test/recheck.sh` with 9 repeats for any unit that looks slower).
+all 71 units (`engine/test/rc_ab_all.sh`, then `engine/test/recheck.sh` with 9 repeats for any unit that looks slower;
+both were written for the rc2/rc3 race and expect the previous and new binaries in `build/rc/`, so edit the binary
+names for later releases).
 
 ## Repository layout
 
@@ -86,7 +89,7 @@ engine/test/      RNG and SHA-256 unit tests, engine-vs-reference comparison, co
 engine/tools/     one-off source patch helper
 spec/             Python spec model of the ABIDES code paths and its comparison harness
 adv/              adversarial suite: generator, 238 scenarios, logs; adv/scale/ holds the scale tests
-analysis/         unit inventory, rc1 container rates, rc2/rc3 per-unit timing comparisons, fuzz logs
+analysis/         unit inventory, rc1 container rates, rc2/rc3 and rc2/rc4-fix per-unit timing comparisons
 submission/       Dockerfile, preflight gate runner, descriptor builder, submit pipeline, packer image
 ```
 
@@ -95,8 +98,10 @@ Not included: the organiser kits and ABIDES (linked above), reference and candid
 
 ## How to run
 
-Requirements: Docker (linux/amd64), Python 3.13 with the organiser's `qfbench2` toolkit v2.5.1 for the
-official gates, and the ABIDES baseline image built from the Track 3 kit for the adversarial suite.
+Requirements: Docker (linux/amd64); Python 3.13 with the organiser's `qfbench2` toolkit v2.5.1 for the
+official gates; the Track 3 kit cloned to `upstream/track3-simulation-public/` inside this repository (used by
+`preflight.py`, `container_timing.py` and the `engine/test/*.sh` scripts); and, for the adversarial suite, the ABIDES
+baseline image built from that kit and tagged `track3-abides-baseline:latest`.
 
 ```bash
 # build the image (context = repo root)
@@ -109,7 +114,7 @@ python submission/preflight.py t3sim:dev            # --quick skips the adversar
 python engine/test/container_timing.py t3sim:dev 3
 
 # adversarial suite vs the real ABIDES image
-python adv/adversarial.py gen                        # write adv/scenarios/*.json
+python adv/adversarial.py gen && python adv/adversarial.py genfuzz 200   # 38 targeted + 200 fuzz scenarios (already committed)
 python adv/adversarial.py ref                        # run the ABIDES baseline image -> adv/ref/
 python adv/adversarial.py check t3sim:dev            # run the candidate -> adv/cand/, compare exactly
 ```
@@ -120,8 +125,9 @@ A native build needs only `g++` (C++17); see the flags in `submission/Dockerfile
 
 - The engine reproduces the ABIDES code paths that the Track 3 scenario agents reach; it is not a general
   ABIDES replacement.
-- The 65/65, 30/30, 6/6 and scale-test figures come from `preflight.py` runs whose raw stdout was not saved;
-  they are reproducible with the commands above. The adversarial result is saved in `adv/check_rc4.txt`.
+- The 65/65, 30/30 and 6/6 figures come from `preflight.py` runs whose raw stdout was not saved (reproducible
+  with the commands above); the scale-test figure (rc2, `adv/scale/`) comes from a manual container run that was not
+  logged. No container-window throughput measurement of rc4 is committed. The adversarial result is saved in `adv/check_rc4.txt`.
 - Throughput depends on the host: the per-unit rates were measured on local Docker Desktop, the scale
   test under `--cpus 4 --memory 16g`.
 - "Rows" and "events" are the same quantity here: the organiser's rate is output trace rows (`n_events`)

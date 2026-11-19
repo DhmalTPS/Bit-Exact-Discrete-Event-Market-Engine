@@ -1,7 +1,7 @@
 #!/bin/bash
-S="/mnt/f/#Project/Agenthon_T3_Simulation/build/scratch"; mkdir -p $S/cfg $S/o $S/all  # in-project scratch only
+ROOT="$(cd "$(dirname "$0")/../.." && pwd)"; S="$ROOT/build/scratch"; mkdir -p $S/cfg $S/o $S/all  # in-project scratch only
 # wall-clock (min of 7) per unit for T3_ASYNC=0 vs 1, plus the estimate-based default
-cd "/mnt/f/#Project/Agenthon_T3_Simulation"
+cd "$ROOT"
 g++ -O2 -std=c++17 -march=x86-64-v2 -ffp-contract=off -w -o $S/cur engine/src/main.cpp -lpthread || exit 1
 U=upstream/track3-simulation-public/units
 best() { local m=9; for r in 1 2 3 4 5 6 7; do w=$(env $1 $S/cur simulate --config $S/cfg/$2.json --out $S/o/s/trace.parquet | grep -o '"wall_clock_sec": [0-9.e-]*' | awk '{print $2}'); m=$(awk -v a=$m -v b=$w 'BEGIN{print (b<a)?b:a}'); done; echo $m; }

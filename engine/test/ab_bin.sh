@@ -1,5 +1,5 @@
 #!/bin/bash
-S="/mnt/f/#Project/Agenthon_T3_Simulation/build/scratch"; mkdir -p $S/cfg $S/o $S/all  # in-project scratch only
+ROOT="$(cd "$(dirname "$0")/../.." && pwd)"; S="$ROOT/build/scratch"; mkdir -p $S/cfg $S/o $S/all  # in-project scratch only
 # A/B two prebuilt binaries, interleaved, min sim time of 5 runs per unit
 A=$1; B=$2; shift 2
 for n in ${@:-t3-fastlob-core t3-mr-deep-book-state-size t3-gb-mega-throughput}; do

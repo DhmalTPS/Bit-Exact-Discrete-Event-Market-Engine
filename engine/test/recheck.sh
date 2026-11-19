@@ -1,7 +1,7 @@
 #!/bin/bash
-S="/mnt/f/#Project/Agenthon_T3_Simulation/build/scratch"; mkdir -p $S/cfg $S/o $S/all  # in-project scratch only
+ROOT="$(cd "$(dirname "$0")/../.." && pwd)"; S="$ROOT/build/scratch"; mkdir -p $S/cfg $S/o $S/all  # in-project scratch only
 # re-race rc2 vs current build on named units, 9 interleaved repeats, min wall
-cd "/mnt/f/#Project/Agenthon_T3_Simulation"; cp build/rc/rc3 $S/rc3
+cd "$ROOT"; cp build/rc/rc3 $S/rc3
 for n in "$@"; do
   if [ -d $S/all/$n ]; then args="simulate-batch --batch-dir $S/all/$n --out-dir $S/o/rb"; else args="simulate --config $S/all/$n.json --out $S/o/r/trace.parquet"; fi
   a=9; b=9
