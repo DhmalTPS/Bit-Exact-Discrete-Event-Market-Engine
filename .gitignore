@@ -1,14 +1,37 @@
-upstream/
-abides/
-.venv-*/
-out/
-run_outputs/
-build/
+# Whitelist: ignore everything at the root, then re-include the published paths.
+/*
+!/.gitignore
+!/.dockerignore
+!/README.md
+!/engine/
+!/spec/
+!/analysis/
+!/submission/
+!/adv/
+
+# adv/: keep the generator, scenarios and logs; drop the ~470 MB of reference/candidate traces
+/adv/*
+!/adv/adversarial.py
+!/adv/check_rc4.txt
+!/adv/ref_log.txt
+!/adv/ref_fuzz_log.txt
+!/adv/scale/
+!/adv/scenarios/
+
+# analysis/: drop the local copy of the baseline LFS files
+/analysis/baseline_lf/
+
+# submission/: never publish packed submissions, the sealed descriptor or archives
+/submission/*.zip
+/submission/archive/
+/submission/submission.json
+
+# Never published (already excluded by /*):
+#   abides/, upstream/  third-party clones with their own git history (linked in README)
+#   extra_info/         registry and team credentials
+#   .venv-*/, build/, out/, run_outputs/  environments, build outputs, large run traces
+
+__pycache__/
+*.pyc
 *.parquet
-adv/ref/
-adv/cand/
-analysis/baseline_lf/
-extra_info/
-submission/*.zip
-submission/submission.json
-submission/**/*.zip
+*.zip

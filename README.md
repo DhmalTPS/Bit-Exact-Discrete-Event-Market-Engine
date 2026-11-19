@@ -1,86 +1,129 @@
-# Agenthon 2026 Track 3 — `t3sim`: an exact, compiled ABIDES-equivalent market simulator
+# Bit-Exact Discrete-Event Market Engine
 
-`t3sim` is a single static C++17 binary that reproduces the pinned ABIDES baseline
-(`f9cbe51` + the four Track-3 patches + the `abides_fork` adapter) **row-for-row and
-message-for-message**, and is shipped in a Docker image that implements the `simulate` and
-`simulate-batch` verbs.
+`t3sim` is a single static C++17 binary that reproduces the pinned ABIDES market simulator
+**row for row and message for message**, including a bit-exact port of NumPy's legacy MT19937
+`RandomState`, at roughly 150x the baseline's throughput on the largest public unit.
 
-## Results (release candidate `t3sim:rc4`)
+## Context
+
+- Agenthon 2026, Track 3 (simulation), run on CodaBench. Built 2 to 6 October 2026; solo.
+- Final leaderboard rank: **23 / 55**.
+- Organiser material (not included here): the Track 3 public kit
+  [`Agenthon-2026/track3-simulation-public`](https://github.com/Agenthon-2026/track3-simulation-public),
+  the programme kit [`Agenthon-2026/Agenthon2026-public`](https://github.com/Agenthon-2026/Agenthon2026-public),
+  and the reference simulator [`jpmorganchase/abides-jpmc-public`](https://github.com/jpmorganchase/abides-jpmc-public)
+  (pinned at `f9cbe51` plus the four Track 3 patches and the `abides_fork` adapter).
+
+## Problem
+
+Teams ship a Docker image with `simulate` and `simulate-batch` verbs. Given a scenario config
+(agent populations, oracle, latency model, protocol delays, seed), the image must emit the same
+event trace and ledger as the ABIDES baseline. Correctness is a hard gate: the fill sequence must be
+exact, and sealed scenarios are used in the Final. Among correct entries, ranking is on organiser-measured
+throughput (events/s over the whole container window) under Final caps of 4 CPUs and 16 GiB.
+
+Exactness is the hard part. ABIDES is a Python discrete-event kernel driven by NumPy's legacy RNG, so
+one extra or reordered random draw, one tie broken differently in the event queue, or one float rounded
+differently by the platform's `libm` changes every subsequent row.
+
+## Approach
+
+1. **Spec model.** `spec/spec_sim.py` (about 560 lines of Python) restates exactly the ABIDES code paths
+   the scenario agents reach. It matches all 95 public cases exactly and served as the oracle while building the engine.
+2. **C++ engine** (`engine/src/`, about 2,800 lines):
+   - a bit-exact port of NumPy's legacy `RandomState` (`rng.hpp`): MT19937, polar Gaussian, masked `randint`
+     and legacy Pareto, checked draw by draw against NumPy (`engine/test/rng_test.cpp`, `rng_ref.py`);
+   - the ABIDES kernel ordering `(time, sender, recipient, message_id)`, with separate 4-ary heaps for
+     wakeups and messages, per-agent busy times and computation delays (`sim.hpp`);
+   - Python numeric semantics where they matter: the oracle mixes int and float times after a megashock,
+     compares floats against ints exactly, and rounds half-to-even;
+   - the exchange, order book, self-trade prevention, protocol delays and the 16:00 oracle close.
+3. **Throughput.**
+   - Output streams in 4,096-row chunks to encoder threads that write Parquet pages (delta-binary-packed
+     integers, dictionary strings) while the simulation runs (`output.hpp`, `parquet.hpp`).
+   - A producer thread precomputes the latency RNG stream; its values depend only on the seed, so this is exact
+     (`latstream.hpp`).
+   - Small scenarios take a synchronous fast path; the binary is static, starts in about a millisecond, and
+     hashes outputs with SHA-NI SHA-256 (`sha256.hpp`).
+4. **Floating-point discipline.** Build with `-ffp-contract=off`, never `-ffast-math`, and link glibc `libm`
+   statically: the Windows UCRT `log` differs from glibc in the last ULP, which is enough to break exactness.
+
+## Results (release candidate `rc4`)
 
 | Check | Result |
 |---|---|
-| Public single units vs shipped references (trace **and** ledger, exact) | **65 / 65** |
+| Public single units vs shipped references (trace and ledger, exact) | **65 / 65** |
 | Public batch sub-scenarios vs shipped references (exact) | **30 / 30** |
 | Official `run_regression.py` | **65 / 65 PASS** |
 | Official batch gates (`check_aggregate` + `score_isolation`) | **6 / 6 PASS** |
-| Adversarial shadow-sealed suite vs the real ABIDES image (exact) | **230 / 230** (36 targeted + 194 random fuzz; 8 more crash ABIDES itself) |
+| Adversarial suite vs the real ABIDES image (exact) | **230 / 230** (36 targeted + 194 random fuzz); 8 further generated scenarios crash ABIDES itself and have no reference (`adv/check_rc4.txt`) |
 | Byte-identical repeats, also under `--gpus all` | yes |
-| Mean container-window rate over all 71 public units (local Docker Desktop) | **~328k events/s** |
-| Same metric, mega unit (1.17M rows) | ~1.56M events/s (ABIDES: ~10.5k) |
-| Scale test, 13.9M rows, under Final caps (4 CPU, 16 GiB) | 6.8 s container, ~2.0M events/s, 477 MiB peak |
+| Scale test, 13.9M rows, under Final caps (4 CPU, 16 GiB) | **6.8 s** container time, ~2.0M events/s, 477 MiB peak |
+| Largest public unit (1.17M rows) | ~1.56M events/s vs ABIDES ~10.5k (**~150x**) |
+| Mean container-window rate over all 71 public units (local Docker Desktop) | ~328k events/s |
+| Final leaderboard | **23 / 55** |
 
-ABIDES's own shipped `events.json` files self-report ~14k events/s, timing the simulation loop
-only. The figures above time the whole container, the way Final timing is measured.
+ABIDES's own `events.json` files self-report ~14k events/s, timing the simulation loop only; the figures
+above time the whole container, as the organiser does. Because the trace is exact, every distributional
+(Tier-B) and stylized-fact metric is 0, the same as the baseline compared with itself.
 
-Because the trace is exact, every Tier-B statistic and stylized-fact metric is 0, the same as the
-baseline compared with itself.
+**A regression that passed every correctness gate.** rc3 was exact everywhere yet ~4% slower on mid-size
+units: its concurrent-ledger-write threshold had been tuned on a subset that missed them. Development scores
+were rc2 8,703,131.73 and rc3 8,584,091.99. rc4 lowered the threshold from 1 MB to 64 KB and is at or above
+rc2 on every unit (`analysis/rc2_vs_rc3.txt`). Since then a release candidate must pass both
+`submission/preflight.py` and a head-to-head race of the shipped image binary against the previous release on
+all 71 units (`engine/test/rc_ab_all.sh`, then `engine/test/recheck.sh` with 9 repeats for any unit that looks slower).
 
-## How it works
+## Repository layout
 
-1. **The spec model.** `spec/spec_sim.py` restates, in about 500 lines, exactly the ABIDES code
-   paths the scenario agents reach. It matches all 95 public cases exactly.
-2. **The C++ engine** (`engine/src/`) implements those semantics again with:
-   - a bit-exact port of numpy's legacy `RandomState` (`rng.hpp`). MT19937, polar gauss,
-     masked `randint` and legacy pareto are verified against numpy draw by draw.
-   - the ABIDES kernel order `(time, sender, recipient, message_id)`, using split 4-ary heaps for
-     wakeups and messages, plus per-agent busy times and computation delays.
-   - Python numeric semantics where they matter: the oracle mixes int and float times after a
-     megashock, compares floats against ints exactly, and rounds half-to-even.
-   - the exchange, order book, STP, protocol delays and the 16:00 oracle close.
-3. **Speed.**
-   - Output streams in 4,096-row chunks to encoder threads, which write Parquet pages
-     (delta-binary-packed integers, dictionary strings) while the simulation runs.
-   - A producer thread precomputes the latency RNG stream. Its values depend only on the seed,
-     so precomputing them is exact.
-   - The binary is static, starts in about a millisecond, and computes SHA-256 with SHA-NI.
-4. **Exactness rules.** Keep `-ffp-contract=off`, do not use `-ffast-math`, and link against
-   glibc libm. Windows' UCRT `log` differs from glibc in the last ULP.
-
-## Reproduce
-
-```bash
-# scoring env (py3.13 + toolkit v2.5.1) at .venv-score; ABIDES baseline image from an LF copy of baselines/
-docker build --platform=linux/amd64 -f submission/Dockerfile -t t3sim:dev .   # context = repo root
-python submission/preflight.py t3sim:dev            # all gates; --quick skips the adversarial suite
-python engine/test/container_timing.py t3sim:dev 3  # organizer-style container-window rates
-python adv/adversarial.py gen|ref|check IMAGE       # shadow-sealed suite vs ABIDES
+```
+engine/src/       C++17 engine: sim.hpp (kernel, agents, exchange), rng.hpp (NumPy RNG port),
+                  latstream.hpp, output.hpp + parquet.hpp (streaming Parquet writer),
+                  sha256.hpp, json.hpp, main.cpp (simulate / simulate-batch CLI)
+engine/test/      RNG and SHA-256 unit tests, engine-vs-reference comparison, container timing,
+                  A/B and release-candidate race scripts, profiling helpers
+engine/tools/     one-off source patch helper
+spec/             Python spec model of the ABIDES code paths and its comparison harness
+adv/              adversarial suite: generator, 238 scenarios, logs; adv/scale/ holds the scale tests
+analysis/         unit inventory, rc1 container rates, rc2/rc3 per-unit timing comparisons, fuzz logs
+submission/       Dockerfile, preflight gate runner, descriptor builder, submit pipeline, packer image
 ```
 
-## Submitting (needs your accounts)
+Not included: the organiser kits and ABIDES (linked above), reference and candidate traces
+(~600 MB), build outputs, environments, packed submissions and credentials.
 
-1. `docker tag t3sim:rc4 <dockerhub-user>/agenthon-t3:rc4 && docker push <dockerhub-user>/agenthon-t3:rc4`.
-   The repository must allow **anonymous pulls by digest**.
-2. `docker inspect --format '{{index .RepoDigests 0}}' <dockerhub-user>/agenthon-t3:rc4` gives the digest.
-3. `python submission/make_descriptor.py docker.io <dockerhub-user>/agenthon-t3 sha256:<digest> dev`
-   builds a sealed, validated `submission/submission.json`.
-4. `qfbench2 submission pack --descriptor submission/submission.json --team-number <N> --out submission.zip`
-   prompts for the Team Key. Then upload `submission.zip` on the Track 3 CodaBench page
-   (limits: 5 per day, 20 in total).
+## How to run
 
-## Risk register
+Requirements: Docker (linux/amd64), Python 3.13 with the organiser's `qfbench2` toolkit v2.5.1 for the
+official gates, and the ABIDES baseline image built from the Track 3 kit for the adversarial suite.
 
-| Risk | Mitigation |
-|---|---|
-| A sealed scenario uses a code path no public unit covers | The adversarial suite covers protocol delays, both STP policies, a missing latency config, sessions past the oracle close, rejected prices, float parameters, extreme jumps, 380 agents and sub-round-trip wakeups. All exact. |
-| libm or compiler FP differences | glibc static link, FP contraction off. Validated in the Docker image itself. |
-| Memory or time on a much larger SS-BENCH | Streaming output keeps RSS small (54 MB for 1.17M rows). Throughput is about 5M rows/s per core. |
-| Message ids ≥ 2³², or more than 2³¹ rows in a page | Not reachable at any size ABIDES can generate. |
+```bash
+# build the image (context = repo root)
+docker build --platform=linux/amd64 -f submission/Dockerfile -t t3sim:dev .
 
-## Release rule (learned from rc3)
+# all correctness gates: public units, batches, official regression, batch gates, adversarial suite
+python submission/preflight.py t3sim:dev            # --quick skips the adversarial suite
 
-rc3 passed every correctness gate yet was 4% slower on mid-size units: its write-thread threshold
-was tuned on a subset that missed the mid-size units. Any new release candidate must therefore pass
-**both** `submission/preflight.py` **and** a head-to-head race of the *shipped image binary* against
-the previous RC on all 71 units (`engine/test/rc_ab_all.sh`, then `engine/test/recheck.sh` with 9
-repeats for any unit that looks slower). Development scores: rc2 8,703,131.73; rc3 8,584,091.99 (regression);
-rc4 = fix, ≥ rc2 on every unit.
+# organiser-style container-window throughput
+python engine/test/container_timing.py t3sim:dev 3
+
+# adversarial suite vs the real ABIDES image
+python adv/adversarial.py gen                        # write adv/scenarios/*.json
+python adv/adversarial.py ref                        # run the ABIDES baseline image -> adv/ref/
+python adv/adversarial.py check t3sim:dev            # run the candidate -> adv/cand/, compare exactly
+```
+
+A native build needs only `g++` (C++17); see the flags in `submission/Dockerfile`.
+
+## Notes and limitations
+
+- The engine reproduces the ABIDES code paths that the Track 3 scenario agents reach; it is not a general
+  ABIDES replacement.
+- The 65/65, 30/30, 6/6 and scale-test figures come from `preflight.py` runs whose raw stdout was not saved;
+  they are reproducible with the commands above. The adversarial result is saved in `adv/check_rc4.txt`.
+- Throughput depends on the host: the per-unit rates were measured on local Docker Desktop, the scale
+  test under `--cpus 4 --memory 16g`.
+- "Rows" and "events" are the same quantity here: the organiser's rate is output trace rows (`n_events`)
+  per second of container time.
+- Limits not reachable at any size ABIDES can generate: message ids at or above 2^32, or more than 2^31 rows
+  in one Parquet page.
