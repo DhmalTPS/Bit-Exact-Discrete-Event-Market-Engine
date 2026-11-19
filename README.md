@@ -7,6 +7,7 @@
 ## Context
 
 - Agenthon 2026, Track 3 (simulation), run on CodaBench. Built 2 to 6 October 2026; solo.
+- **Authorship:** the engine design, verification strategy and final submission are mine. I used AI coding assistants for parts of the implementation and for adversarial review.
 - Final leaderboard rank: **23 / 55**.
 - Organiser material (not included here): the Track 3 public kit
   [`Agenthon-2026/track3-simulation-public`](https://github.com/Agenthon-2026/track3-simulation-public),
